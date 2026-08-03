@@ -1,0 +1,63 @@
+<nav class="navbar navbar-expand-lg">
+
+<div class="container-fluid px-4">
+
+<div class="logo">
+
+<i class="bi bi-mortarboard-fill"></i>
+
+EduHub
+
+</div>
+
+<div class="search-box">
+
+<input
+type="text"
+class="form-control"
+placeholder="Search courses, students, teachers...">
+
+</div>
+
+<ul class="navbar-nav ms-auto align-items-center">
+
+<li class="nav-item me-4">
+
+<i class="bi bi-bell fs-4"></i>
+
+</li>
+
+<li class="nav-item me-4">
+
+<i class="bi bi-chat-left-text fs-4"></i>
+
+</li>
+
+<li class="nav-item dropdown">
+
+<a
+class="nav-link dropdown-toggle"
+data-bs-toggle="dropdown">
+
+<img
+src="https://i.pravatar.cc/150?img=12"
+class="user-img">
+
+</a>
+
+<ul class="dropdown-menu dropdown-menu-end">
+
+<li><a class="dropdown-item" href="#">Profile</a></li>
+<li><a class="dropdown-item" href="#">Settings</a></li>
+<li><hr></li>
+<li><a class="dropdown-item text-danger" href="{% url 'logout' %}">Logout</a></li>
+
+</ul>
+
+</li>
+
+</ul>
+
+</div>
+
+</nav>
