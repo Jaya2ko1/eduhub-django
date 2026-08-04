@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class="container mt-4">
+
+    <div class="card shadow border-0">
+
+        <div class="card-header">
+
+            <h4>Edit Category</h4>
+
+        </div>
+
+        <div class="card-body">
+                 {% if form.errors %}
+        <div class="alert alert-danger">
+            {{ form.errors }}
+        </div>
+        {% endif %} 
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        {{ form.category.label }}
+                    </label>
+
+                   {{form.category}}
+                </div>
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Description
+                    </label>
+
+                     {{form.description}}
+
+                </div>
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Status
+                    </label>
+
+                   {{form.status}}
+
+
+                </div>
+
+                <button class="btn btn-success" type="submit">
+                    Update
+                </button>
+
+                <a href="{% url 'list_category' %}" class="btn btn-secondary">
+                    Cancel
+                </a>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock body %}

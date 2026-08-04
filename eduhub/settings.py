@@ -16,6 +16,10 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
@@ -40,6 +44,7 @@ INSTALLED_APPS = [
     "accounts",
     "core",
     "courses",
+    "categories",
 ]
 
 MIDDLEWARE = [
@@ -118,6 +123,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = "static/"
+
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"

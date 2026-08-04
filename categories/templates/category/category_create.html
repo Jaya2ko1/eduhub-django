@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class="container mt-4">
+
+    <div class="card shadow border-0">
+
+        <div class="card-header">
+            <h4>Add Category</h4>
+        </div>
+
+        <div class="card-body">
+               {% if form.errors %}
+        <div class="alert alert-danger">
+            {{ form.errors }}
+        </div>
+        {% endif %} 
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Category Name
+                    </label>
+
+                    <input
+                        type="text"
+                        class="form-control"
+                        placeholder="Enter Category Name" name="category">
+
+                </div>
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Description
+                    </label>
+
+                    <textarea
+                        class="form-control"
+                        rows="4"
+                        placeholder="Description" name="description"></textarea>
+
+                </div>
+
+                <div class="mb-3">
+
+                    <input
+                        class="form-check-input"
+                        type="checkbox" name="status"
+                        checked>
+
+                     <label class="form-check-label">
+                        Active
+                    </label>
+
+                </div>
+
+                <button class="btn btn-primary" type="submit">
+                    Save Category
+                </button>
+
+                <a href="{% url 'list_category' %}" class="btn btn-secondary">
+                    Cancel
+                </a>
+
+            </form>
+
+        </div>
+
+    </div> 
+
+</div>
+
+{% endblock body %}

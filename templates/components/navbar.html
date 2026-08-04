@@ -10,13 +10,17 @@ EduHub
 
 </div>
 
-<div class="search-box">
+ <div class="search-box">
+<form action="{% url 'search' %}" method="GET">
 
-<input
-type="text"
-class="form-control"
-placeholder="Search courses, students, teachers...">
+    <input
+        type="text"
+        name="search"
+        class="form-control"
+        placeholder="Search category..."
+        value="{{ query }}">
 
+</form>
 </div>
 
 <ul class="navbar-nav ms-auto align-items-center">
