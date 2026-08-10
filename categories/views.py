@@ -49,8 +49,9 @@ def list_category(request):
 
 def search(request):
     query = request.GET.get("search", "").strip()
+   
 
-    categories = Category.objects.none()
+    categories = Category.objects.all()
 
     if query:
         categories = Category.objects.filter(

@@ -8,7 +8,7 @@ function confirmDelete(selector) {
             const url = this.href;
 
             Swal.fire({
-                title: "Delete Category?",
+                title: "Delete This?",
                 text: "This action cannot be undone.",
                 icon: "warning",
                 showCancelButton: true,
@@ -28,3 +28,7 @@ function confirmDelete(selector) {
 
     });
 }
+
+
+
+

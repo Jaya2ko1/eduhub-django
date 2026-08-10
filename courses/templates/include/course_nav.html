@@ -1,0 +1,79 @@
+<form method="GET" action="{% url 'search_course' %}" id="filterForm">
+
+    <div class="row g-2 align-items-center mb-3">
+
+        <!-- Search -->
+        <div class="col-md-4">
+            <input
+                type="text"
+                name="search"
+                class="form-control"
+                placeholder="Search Course..."
+                value="{{ query }}">
+        </div>
+
+        <!-- Category -->
+        <div class="col-md-3">
+            <select
+                name="category"
+                id="category"
+                class="form-select">
+
+                <option value="">All Categories</option>
+
+                {% for cat in categories %}
+                    <option value="{{ cat.id }}"
+                        {% if category == cat.id|stringformat:"s" %}selected{% endif %}>
+                        {{ cat.category }}
+                    </option>
+                {% endfor %}
+
+            </select>
+        </div>
+
+        {% if user.role != 'student' %}
+
+        <!-- Status -->
+        <div class="col-md-2">
+            <select
+                name="status"
+                id="status"
+                class="form-select">
+
+                <option value="">All Status</option>
+
+                <option value="published"
+                    {% if status == "published" %}selected{% endif %}>
+                    Published
+                </option>
+
+                <option value="draft"
+                    {% if status == "draft" %}selected{% endif %}>
+                    Draft
+                </option>
+
+            </select>
+        </div>
+
+        <!-- Add Course -->
+        <div class="col-md-3 text-end">
+            <a href="{% url 'create_course' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i>
+                Add Course
+            </a>
+        </div>
+
+    </div>
+{% endif %}
+
+</form>
+
+<script>
+document.getElementById("category").addEventListener("change", function () {
+    document.getElementById("filterForm").submit();
+});
+
+document.getElementById("status").addEventListener("change", function () {
+    document.getElementById("filterForm").submit();
+});
+</script>

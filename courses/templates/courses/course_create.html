@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class="container mt-4">
+
+    <div class="card shadow border-0">
+
+        <div class="card-header">
+            <h4>Add Course</h4>
+        </div>
+
+        <div class="card-body">
+               {% if form.errors %}
+        <div class="alert alert-danger">
+            {{ form.errors }}
+        </div>
+        {% endif %} 
+
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                 <div class="mb-3">
+
+                    <label class="form-label">
+                        Thumbnail Image
+                    </label>
+                    {{ form.thumbnail }}
+
+                     <div class="mt-3">
+
+                <img id="thumbnailPreview"
+                    src=""
+                    alt="Thumbnail Preview"
+                    class="rounded-circle border shadow"
+                    width="150"
+                    height="150"
+                    style="display:none; object-fit:cover;">
+            </div>
+
+                   
+                </div>
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Course Name
+                    </label>
+                    {{ form.title }}
+
+                   
+                </div>
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Short Description
+                    </label>
+                    {{ form.short_description }}
+
+                </div>
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Full Description
+                    </label>
+
+                    {{ form.full_description }}
+
+                </div>
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Category
+                    </label>
+
+                    {{ form.category }}
+                 <div class="mb-3">
+
+                    <label class="form-label">
+                        Price
+                    </label>
+
+                    {{ form.price }}
+
+                </div>
+
+                 <div class="mb-3">
+                    
+
+                    <label class="form-label">
+                        Instructor
+                    </label>
+
+                     {{ form.instructor }}
+
+                </div>
+
+                
+
+                <div class="mb-3">
+
+                  
+
+                     <label name="status" id="status" class="form-label">
+                        Status
+                    </label>
+
+                   {{ form.status }}
+
+                </div>
+
+                <button class="btn btn-primary" type="submit">
+                    Save Course
+                </button>
+
+                <a href="{% url 'list_course' %}" class="btn btn-secondary">
+                    Cancel
+                </a>
+
+            </form>
+
+        </div>
+
+    </div> 
+
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const input = document.getElementById("id_thumbnail");
+    const preview = document.getElementById("thumbnailPreview");
+
+    input.addEventListener("change", function () {
+
+        const file = this.files[0];
+
+        if (file) {
+            preview.src = URL.createObjectURL(file);
+            preview.style.display = "block";
+        }
+    });
+
+});
+</script>
+
+{% endblock body %}
