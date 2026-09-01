@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block body %}
+ <a href="{% url 'lesson_list' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i>
+        List Lesson
+      </a>
+  <div class="container mt-4">
+   
+    <div class="card shadow border-0">
+         
+      <div class="card-header">
+        <h4>View Lesson</h4>
+      </div>
+
+      <div class="card-body">
+        
+        <form>
+            <fieldset disabled>
+         
+          <div class="mb-3">
+            <label class="form-label">Lesson Title :</label>
+
+            {{ lesson.title }}
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Course :</label>
+            {{ lesson.course }}
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Instructor :</label>
+            {{ lesson.instructor }}
+          </div>
+
+          
+          <div class="mb-3">
+            <label class="form-label">Lesson Type :</label>
+            {{ lesson.lesson_type }}
+          </div>
+
+        <div class="mb-3" id="content-field" style="display: none;">
+
+                    <label class="form-label">
+                        Content :
+                    </label>
+
+                    {{ lesson.content }}
+
+                </div>
+
+                <div class="mb-3" id="url-field" style="display: none;">
+
+                    <label class="form-label">
+                        Video Link :
+                    </label>
+
+                    {{ lesson.video_url }}
+                </div>
+                 <div class="mb-3" id="pdf-field" style="display: none;">
+
+                    <label class="form-label">
+                        PDF Resource :
+                    </label>
+
+                    {{ lesson.pdf_file }}
+
+                </div>
+
+                 <div class="mb-3">
+                    
+
+                    <label class="form-label">
+                        Order Number :
+                    </label>
+
+                     {{ lesson.order_number }}
+
+                </div>
+
+                
+
+                <div class="mb-3">
+
+                  
+
+                     <label name="status" id="status" class="form-label">
+                        Status :
+                    </label>
+
+                   {{ lesson.status }}
+
+                </div>
+              </fieldset>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+{% endblock %}

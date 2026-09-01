@@ -39,31 +39,47 @@ def delete_category(request,id):
     return redirect('list_category')
     
 def list_category(request):
-    category_list = Category.objects.all().order_by('-id')
-    paginator = Paginator(category_list, 5)  
+    categories = Category.objects.all().order_by('-id')
+    paginator = Paginator(categories, 5)  
 
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    return render(request,"category/category_list.html",{'page_obj':page_obj})
+    return render(request,"category/category_list.html",{'page_obj':page_obj,'categories':categories})
 
 def search(request):
     query = request.GET.get("search", "").strip()
-   
+    category = request.GET.get("category","")
+    status = request.GET.get("status","")
 
     categories = Category.objects.all()
 
     if query:
-        categories = Category.objects.filter(
+        categories =categories.filter(
             Q(category__icontains=query) |
             Q(description__icontains=query)
         ).order_by("-id")
+
+    if category:
+        categories = categories.filter(id = category)
+
+    if status:
+        categories = categories.filter(status = status)
+
+    paginator = Paginator(categories, 5)  
+    
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
     return render(
         request,
         "category/category_search.html",
         {
-            "categories": categories,
+            "page_obj": page_obj,
             "query": query,
+            'category':category,
+            'categories':categories,
+            'status':status,
+
         },
     )

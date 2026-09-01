@@ -17,7 +17,7 @@ class Course(models.Model):
     title = models.CharField(max_length=150,unique=True)
     slug = models.SlugField(max_length=100,unique=True,blank=True)
     category = models.ForeignKey(Category,on_delete=models.CASCADE,related_name="courses")
-    instructor = models.ForeignKey(User,on_delete=models.CASCADE)
+    instructor = models.ForeignKey(User,on_delete=models.PROTECT,related_name="instructor",limit_choices_to={"role": User.TEACHER},)
     thumbnail = models.ImageField(upload_to="courses",default="courses/default.png")
     short_description = models.TextField(max_length=200)
     full_description = models.TextField(max_length=500)

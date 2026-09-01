@@ -1,12 +1,13 @@
 {% extends 'base.html' %}
-{% load static %}
 
+{% load static %}
 {% block body %}
-{% include "category/include/category_nav.html" %}
+
+ {% include "include/lesson_nav.html" %}
 
     <div class="card shadow-sm border-0">
       <div class="card-header bg-white">
-        <h5 class="mb-0">Category List</h5>
+        <h5 class="mb-0">Lesson List</h5>
       </div>
 
       <div class="card-body">
@@ -14,36 +15,45 @@
           <thead class="table-light">
             <tr>
               <th>#</th>
-              <th>Category Name</th>
-              <th>Description</th>
+              <th>Title</th>
+              <th>Course Name</th>
+              <th>instructor</th>
+              <th>Lesson Order</th>
               <th>Status</th>
               <th width="180">Action</th>
             </tr>
           </thead>
 
           <tbody>
-            {% for category in page_obj %}
+            {% for lesson in page_obj %}
               <tr>
                 <td>{{ page_obj.start_index|add:forloop.counter0 }}</td>
-                <td>{{ category.category }}</td>
-                <td>{{ category.description|truncatewords:5 }}</td>
+                <td>{{ lesson.title }}</td>
+                <td>{{ lesson.course }}</td>
+                <td>{{ lesson.instructor }}</td>
+                <td>{{ lesson.order_number}}</td>
                 <td>
-                  {% if category.status %}
-                    <span class="badge bg-success">Active</span>
+                  {% if lesson.status == "published" %}
+                    <span class="badge bg-success">Published</span>
                   {% else %}
-                    <span class="badge bg-danger">InActive</span>
+                    <span class="badge bg-danger">Draft</span>
                   {% endif %}
                 </td>
-
+                 
                 <td>
-                  <a href="{% url 'edit_category' category.id %}" class="btn btn-sm btn-warning">Edit</a>
+                  <a href="{% url 'lesson_detail' lesson.id %}" class="btn btn-sm btn-warning">View</a>
 
-                  <a href="{% url 'delete_category' category.id %}" class="btn btn-sm btn-danger delete-btn">Delete</a>
+                  {% if user.role != 'student' %}
+                  <a href="{% url 'lesson_edit' lesson.id %}" class="btn btn-sm btn-warning">Edit</a>
+
+                  <a href="{% url 'lesson_delete' lesson.id %}" class="btn btn-sm btn-danger delete-btn">Delete</a>
+                   {% endif %}
                 </td>
+               
               </tr>
             {% empty %}
               <tr>
-                <td colspan="5" class="text-center">No categories found.</td>
+                <td colspan="5" class="text-center">No Lesson found.</td>
               </tr>
             {% endfor %}
           </tbody>
@@ -87,3 +97,4 @@
 {% block scripts %}
 <script src="{% static 'js/category.js' %}"></script>
 {% endblock scripts %}
+

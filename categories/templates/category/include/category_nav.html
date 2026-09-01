@@ -1,0 +1,91 @@
+<form method="GET" action="{% url 'search' %}" id="filterForm">
+
+    <div class="row g-2 align-items-center mb-3">
+
+        <!-- Search -->
+        <div class="col-md-4">
+            <input
+                type="text"
+                name="search"
+                class="form-control"
+                placeholder="Search Category..."
+                value="{{ query }}">
+        </div>
+
+        <!-- Category Filter --> 
+        <div class="col-md-3">
+            <select
+                name="category"
+                id="category"
+                class="form-select">
+
+                <option value="">All Category</option>
+
+                {% for cat in categories %}
+                    <option value="{{ cat.id }}"
+                        {% if category == cat.id|stringformat:"s" %}selected{% endif %}>
+                        {{ cat.category }}
+                    </option>
+
+                     {% empty %}
+
+                    <option disabled>No Category available</option>
+
+                {% endfor %}
+
+            </select>
+        </div>
+        
+
+        {% if user.role != 'student' %}
+
+        <!-- Status -->
+        <div class="col-md-2">
+            <select
+                name="status"
+                id="status"
+                class="form-select">
+
+                <option value="">All Status</option>
+
+                <option value="True"
+                    {% if status == "True" %}selected{% endif %}>
+                    Active
+                </option>
+
+                <option value="False"
+                    {% if status == "inactive" %}selected{% endif %}>
+                    Inactive
+                </option>
+
+            </select>
+        </div>
+        
+        <!-- Add category -->
+        <div class="col-md-3 text-end">
+             <a href="{% url 'create_category' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i>
+                Add Category
+            </a>
+        </div>
+
+   
+{% endif %}
+ </div>
+
+</form>
+
+<script>
+document.getElementById("category").addEventListener("change", function () {
+    document.getElementById("filterForm").submit();
+});
+
+const status = document.getElementById("status");
+
+if (status) {
+    status.addEventListener("change", function () {
+        document.getElementById("filterForm").submit();
+    });
+}
+
+</script>

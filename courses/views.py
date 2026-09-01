@@ -53,7 +53,7 @@ def delete_course(request,id):
     messages.success(request, "Course deleted successfully.") 
     return redirect('list_course') 
 
-from django.db.models import Q
+
 
 def search_course(request):
     categories = Category.objects.all()

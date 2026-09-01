@@ -21,9 +21,8 @@ class CourseForm(forms.ModelForm):
 
     def __init__(self, *args, user=None,**kwargs):
         super().__init__(*args, **kwargs)
-     
         if user:
-            if user.role == 'teacher':
+            if user.role == user.TEACHER:
             
                 self.fields["instructor"].queryset = User.objects.filter(id=user.id)
                 

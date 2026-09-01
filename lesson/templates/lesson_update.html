@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block body %}
+  <div class="container mt-4">
+    <div class="card shadow border-0">
+      <div class="card-header">
+        <h4>Edit Lesson</h4>
+      </div>
+
+      <div class="card-body">
+        {% if form.errors %}
+          <div class="alert alert-danger">{{ form.errors }}</div>
+        {% endif %}
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label">Lesson Title</label>
+
+            {{ form.title }}
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Course </label>
+            {{ form.course }}
+          </div>
+
+           <div class="mb-3">
+            <label class="form-label">Instructor </label>
+            {{ form.instructor }}
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Lesson Type</label>
+            {{ form.lesson_type }}
+          </div>
+
+        <div class="mb-3" id="content-field" style="display: none;">
+
+                    <label class="form-label">
+                        Content
+                    </label>
+
+                    {{ form.content }}
+
+                </div>
+
+                <div class="mb-3" id="url-field" style="display: none;">
+
+                    <label class="form-label">
+                        Video Link
+                    </label>
+
+                    {{ form.video_url }}
+                </div>
+                 <div class="mb-3" id="pdf-field" style="display: none;">
+
+                    <label class="form-label">
+                        PDF Resource
+                    </label>
+
+                    {{ form.pdf_file }}
+
+                </div>
+
+                 <div class="mb-3">
+                    
+
+                    <label class="form-label">
+                        Order Number
+                    </label>
+
+                     {{ form.order_number }}
+
+                </div>
+
+                
+
+                <div class="mb-3">
+
+                  
+
+                     <label name="status" id="status" class="form-label">
+                        Status
+                    </label>
+
+                   {{ form.status }}
+
+                </div>
+          <button class="btn btn-success" type="submit">Update</button>
+
+          <a href="{% url 'list_course' %}" class="btn btn-secondary">Cancel</a>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'js/lesson.js' %}"></script>
+{% endblock scripts %}
