@@ -47,14 +47,17 @@ def lesson_create(request):
     return render(request,"lesson_create.html",{'form':form})
 
 def lesson_edit(request,id):
-    if request.user.role == 'admin':
+    if request.user.role == request.user.ADMIN:
         lesson = get_object_or_404(Lesson, id=id)
-    else:
+    elif request.user.role == request.user.TEACHER:
         lesson = get_object_or_404(
             Lesson,
             id=id,
             instructor=request.user
         )
+
+    else:
+        return redirect('student_dashboard')
     if request.method == "POST":
         form = LessonForm(request.POST,request.FILES,instance=lesson,user=request.user)
         if form.is_valid():
