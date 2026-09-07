@@ -14,7 +14,7 @@ class Lesson(models.Model):
 
     ]
     title = models.CharField(max_length=150)
-    course = models.ForeignKey(Course,on_delete=models.CASCADE,related_name="lessons")
+    course = models.ForeignKey(Course,on_delete=models.CASCADE,related_name="course_lessons")
     lesson_type = models.CharField(max_length=100,choices=LESSON_CHOICE,default='pdf')
     content = models.TextField(max_length=5000)
     video_url = models.URLField(max_length=500, blank=True, null=True)
@@ -23,7 +23,7 @@ class Lesson(models.Model):
     status = models.CharField(max_length=20,choices=STATUS_CHOICE,default='draft')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    instructor = models.ForeignKey(User,on_delete=models.PROTECT,related_name="lessons",limit_choices_to={"role": User.TEACHER},null=True,blank=True)
+    instructor = models.ForeignKey(User,on_delete=models.PROTECT,related_name="instructor_lessons",limit_choices_to={"role": User.TEACHER},null=True,blank=True)
 
 
     class Meta:
@@ -39,4 +39,5 @@ class Lesson(models.Model):
 
     def __str__(self):
         return self.title
-        
+
+    

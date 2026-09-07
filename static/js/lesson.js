@@ -32,19 +32,41 @@ document.addEventListener("DOMContentLoaded", function () {
 
 });
 
-document.addEventListener("DOMContentLoaded", function () {
-
-    const input = document.getElementById("id_thumbnail");
-    const preview = document.getElementById("thumbnailPreview");
-
-    input.addEventListener("change", function () {
-
-        const file = this.files[0];
-
-        if (file) {
-            preview.src = URL.createObjectURL(file);
-            preview.style.display = "block";
+ document.addEventListener('DOMContentLoaded', function () {
+    const courseField = document.getElementById('id_course')
+    const orderNumberField = document.getElementById('id_order_number')
+  
+    console.log('Course field:', courseField)
+    console.log('Order field:', orderNumberField)
+  
+    if (courseField && orderNumberField) {
+      courseField.addEventListener('change', function () {
+        const courseId = this.value
+  
+        console.log('Selected course:', courseId)
+  
+        if (!courseId) {
+          orderNumberField.value = ''
+          return
         }
-    });
+  
+        fetch(`/lesson/next-order-number/?course_id=${courseId}`)
+          .then((response) => response.json())
+          .then((data) => {
+            console.log('Response:', data)
+  
+            orderNumberField.value = data.order_number
+          })
+          .catch((error) => {
+            console.error('Error:', error)
+          })
+      })
+  
+      // Handle the already-selected course
+      if (courseField.value) {
+        courseField.dispatchEvent(new Event('change'))
+      }
+    }
+  })
 
-});
+

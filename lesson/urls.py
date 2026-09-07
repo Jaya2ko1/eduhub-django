@@ -8,4 +8,9 @@ urlpatterns = [
     path('list/',views.lesson_list,name="lesson_list"),
     path('search/',views.lesson_search,name="lesson_search"),
     path('delete/<int:id>',views.lesson_delete,name="lesson_delete"),
+    path(
+        "next-order-number/",
+        views.get_next_order_number,
+        name="next_order_number"
+    ),
 ]

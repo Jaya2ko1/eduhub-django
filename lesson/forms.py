@@ -8,7 +8,15 @@ User = get_user_model()
 class LessonForm(forms.ModelForm):
     class Meta:
         model = Lesson
-        fields = "__all__"
+        fields = [
+            "course",
+            "title",
+            "lesson_type",
+            "content",
+            "video_url",
+            "order_number",
+            "status",
+        ]
         widgets = {
             'title' : forms.TextInput(attrs={'class':'form-control'}),
             'course':forms.Select(attrs={'class':'form-select'}),
@@ -23,10 +31,11 @@ class LessonForm(forms.ModelForm):
 
     def __init__(self, *args, user=None,**kwargs):
         super().__init__(*args, **kwargs)
-
+        
         if user:
+        
             if user.role == user.TEACHER:
                 self.fields['course'].queryset = Course.objects.filter(instructor=user)
-                self.fields['instructor'].queryset = User.objects.filter(username=user)
+                
             else:
                 self.fields['course'].queryset = Course.objects.all()

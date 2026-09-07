@@ -4,6 +4,32 @@ from .models import Lesson,Course
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.db.models import Q
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+
+
+
+@login_required
+def get_next_order_number(request):
+    course_id = request.GET.get("course_id")
+    if not course_id:
+        return JsonResponse({"order_number": 1})
+
+    last_lesson = (
+        Lesson.objects
+        .filter(course_id=course_id)
+        .order_by("-order_number")
+        .first()
+    )
+
+    if last_lesson:
+        next_order = last_lesson.order_number + 1
+    else:
+        next_order = 1
+
+    return JsonResponse({
+        "order_number": next_order
+    })
 
 
 
@@ -12,21 +38,30 @@ def lesson_create(request):
     if request.method == "POST":
         form = LessonForm(request.POST,request.FILES,user=request.user)
         if form.is_valid():
-            form.save()
+            lesson = form.save(commit=False)
+            lesson.instructor = request.user
+            lesson.save()
             return redirect('lesson_list')
     else:
         form = LessonForm(user=request.user)
     return render(request,"lesson_create.html",{'form':form})
 
 def lesson_edit(request,id):
-    lesson_id = get_object_or_404(Lesson,id=id)
+    if request.user.role == 'admin':
+        lesson = get_object_or_404(Lesson, id=id)
+    else:
+        lesson = get_object_or_404(
+            Lesson,
+            id=id,
+            instructor=request.user
+        )
     if request.method == "POST":
-        form = LessonForm(request.POST,request.FILES,instance=lesson_id,user=request.user)
+        form = LessonForm(request.POST,request.FILES,instance=lesson,user=request.user)
         if form.is_valid():
             form.save()
             return redirect('lesson_list')
     else:
-        form=LessonForm(instance=lesson_id,user=request.user)
+        form=LessonForm(instance=lesson,user=request.user)
     return render(request,'lesson_update.html',{'form':form})
 
 def lesson_detail(request,id):
@@ -35,15 +70,15 @@ def lesson_detail(request,id):
 
 
 def lesson_list(request):
-    all_lesson = Lesson.objects.all().order_by('order_number')
-   
-
-    if request.user:
-        if request.user.role == request.user.TEACHER:
-            courses = Course.objects.filter(instructor=request.user.id)
-            all_lesson = Lesson.objects.filter(instructor=request.user.id).order_by('order_number')
-        else:
-            courses = Course.objects.all()
+    courses = Course.objects.all().order_by("-created_at")
+    if request.user.role == "teacher":
+        courses = Course.objects.filter(instructor=request.user)
+        all_lesson = Lesson.objects.filter(instructor=request.user).order_by('order_number')
+    elif request.user.role == "student":
+        all_lesson = Lesson.objects.filter(status="published").order_by('order_number')
+    else:
+        all_lesson = Lesson.objects.all().order_by('order_number')
+        
     paginator = Paginator(all_lesson, 5) 
         
     page_number = request.GET.get('page')
@@ -51,10 +86,23 @@ def lesson_list(request):
     return render(request,"lesson_list.html",{'page_obj':page_obj,'courses':courses})
 
 def lesson_delete(request,id):
-    get_lesson = get_object_or_404(Lesson,id=id)
-    get_lesson.delete()
-    messages.success(request, "Course deleted successfully.")
-    return redirect('lesson_list')
+    if request.method != "POST":
+        return redirect("lesson_list")
+
+    if request.user.role == "admin":
+        lesson = get_object_or_404(Lesson, id=id)
+
+    else:
+        lesson = get_object_or_404(
+            Lesson,
+            id=id,
+            instructor=request.user
+        )
+
+    lesson.delete()
+    # messages.success(request, "Course deleted successfully.")
+
+    return redirect("lesson_list")
 
 def lesson_search(request):
     

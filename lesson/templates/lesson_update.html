@@ -24,12 +24,12 @@
             <label class="form-label">Course </label>
             {{ form.course }}
           </div>
-
+           {% if user.role == 'admin' %}
            <div class="mb-3">
             <label class="form-label">Instructor </label>
             {{ form.instructor }}
           </div>
-          
+          {% endif %}
           <div class="mb-3">
             <label class="form-label">Lesson Type</label>
             {{ form.lesson_type }}

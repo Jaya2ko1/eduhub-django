@@ -1,133 +1,78 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block body %}
-
-<div class="container mt-4">
-
+  <div class="container mt-4">
     <div class="card shadow border-0">
+      <div class="card-header">
+        <h4>Add Lesson</h4>
+      </div>
 
-        <div class="card-header">
-            <h4>Add Lesson</h4>
-        </div>
+      <div class="card-body">
+        {% if form.errors %}
+          <div class="alert alert-danger">{{ form.errors }}</div>
+        {% endif %}
 
-        <div class="card-body">
-               {% if form.errors %}
-        <div class="alert alert-danger">
-            {{ form.errors }}
-        </div>
-        {% endif %} 
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label">Lesson Title</label>
+            {{ form.title }}
+          </div>
 
-            <form method="post" enctype="multipart/form-data">
-                {% csrf_token %}
-                 <div class="mb-3">
+          <div class="mb-3">
+            <label class="form-label">Course</label>
+            {{ form.course }}
+          </div>
+          {% if user.role == 'admin' %}
+            <div class="mb-3">
+              <label class="form-label">Instructor</label>
+              {{ form.instructor }}
+            </div>
+          {% endif %}
 
-                    <label class="form-label">
-                        Lesson Title
-                    </label>
-                    {{ form.title }}
+          <div class="mb-3">
+            <label class="form-label">Lesson Type</label>
+            {{ form.lesson_type }}
+          </div>
 
-                   
-                </div>
+          <div class="mb-3" id="content-field" style="display: none;">
+            <label class="form-label">Content</label>
 
-                <div class="mb-3">
+            {{ form.content }}
+          </div>
 
-                    <label class="form-label">
-                        Course
-                    </label>
-                    {{ form.course }}
+          <div class="mb-3" id="url-field" style="display: none;">
+            <label class="form-label">Video Link</label>
 
-                   
-                </div>
+            {{ form.video_url }}
+          </div>
+          <div class="mb-3" id="pdf-field" style="display: none;">
+            <label class="form-label">PDF Resource</label>
 
-                 <div class="mb-3">
+            {{ form.pdf_file }}
+          </div>
 
-                    <label class="form-label">
-                        Instructor
-                    </label>
-                    {{ form.instructor }}
+          <div class="mb-3">
+            <label class="form-label">Order Number</label>
 
-                   
-                </div>
+            {{ form.order_number }}
+          </div>
 
-                <div class="mb-3">
+          <div class="mb-3">
+            <label name="status" id="status" class="form-label">Status</label>
 
-                    <label class="form-label">
-                        Lesson Type
-                    </label>
-                    {{ form.lesson_type }}
+            {{ form.status }}
+          </div>
 
-                </div>
+          <button class="btn btn-primary" type="submit">Save Lesson</button>
 
-                <div class="mb-3" id="content-field" style="display: none;">
-
-                    <label class="form-label">
-                        Content
-                    </label>
-
-                    {{ form.content }}
-
-                </div>
-
-                <div class="mb-3" id="url-field" style="display: none;">
-
-                    <label class="form-label">
-                        Video Link
-                    </label>
-
-                    {{ form.video_url }}
-                </div>
-                 <div class="mb-3" id="pdf-field" style="display: none;">
-
-                    <label class="form-label">
-                        PDF Resource
-                    </label>
-
-                    {{ form.pdf_file }}
-
-                </div>
-
-                 <div class="mb-3">
-                    
-
-                    <label class="form-label">
-                        Order Number
-                    </label>
-
-                     {{ form.order_number }}
-
-                </div>
-
-                
-
-                <div class="mb-3">
-
-                  
-
-                     <label name="status" id="status" class="form-label">
-                        Status
-                    </label>
-
-                   {{ form.status }}
-
-                </div>
-
-                <button class="btn btn-primary" type="submit">
-                    Save Lesson
-                </button>
-
-                <a href="{% url 'lesson_list' %}" class="btn btn-secondary">
-                    Cancel
-                </a>
-
-            </form>
-
-        </div>
-
-    </div> 
-
-</div>
-
-{% endblock body %}
+          <a href="{% url 'lesson_list' %}" class="btn btn-secondary">Cancel</a>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock %}
 {% block scripts %}
-<script src="{% static 'js/lesson.js' %}"></script>
-{% endblock scripts %}
+  <script src="{% static 'js/lesson.js' %}"></script>
+{% endblock %}
+

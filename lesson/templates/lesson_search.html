@@ -18,7 +18,9 @@
               <th>#</th>
               <th>Title</th>
               <th>Course Name</th>
+               {% if user.role == 'admin' %}
               <th>instructor</th>
+              {% endif %}
               <th>Lesson Order</th>
               <th>Status</th>
               <th width="180">Action</th>
@@ -31,7 +33,9 @@
                 <td>{{ page_obj.start_index|add:forloop.counter0 }}</td>
                 <td>{{ lesson.title }}</td>
                 <td>{{ lesson.course }}</td>
+                 {% if user.role == 'admin' %}
                 <td>{{ lesson.instructor }}</td>
+                {% endif %}
                 <td>{{ lesson.order_number}}</td>
                 <td>
                   {% if lesson.status == "published" %}
