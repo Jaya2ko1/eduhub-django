@@ -68,8 +68,19 @@ def lesson_edit(request,id):
     return render(request,'lesson_update.html',{'form':form})
 
 def lesson_detail(request,id):
-    lesson_id = get_object_or_404(Lesson,id=id)
-    return render(request,"lesson_detail.html",{'lesson':lesson_id})
+    if request.user.role == request.user.ADMIN:
+            lesson = get_object_or_404(Lesson, id=id)
+    
+    elif request.user.role == request.user.TEACHER:
+        lesson = get_object_or_404(
+            Lesson,
+            id=id,
+            instructor=request.user
+        )
+
+    else:
+        return redirect("student_dashboard")
+    return render(request,"lesson_detail.html",{'lesson':lesson})
 
 
 def lesson_list(request):
@@ -88,25 +99,28 @@ def lesson_list(request):
     page_obj = paginator.get_page(page_number)
     return render(request,"lesson_list.html",{'page_obj':page_obj,'courses':courses})
 
-def lesson_delete(request,id):
+def lesson_delete(request, id):
+
     if request.method != "POST":
         return redirect("lesson_list")
 
-    if request.user.role == "admin":
+    if request.user.role == request.user.ADMIN:
         lesson = get_object_or_404(Lesson, id=id)
 
-    else:
+    elif request.user.role == request.user.TEACHER:
         lesson = get_object_or_404(
             Lesson,
             id=id,
             instructor=request.user
         )
 
+    else:
+        return redirect("student_dashboard")
+
     lesson.delete()
-    # messages.success(request, "Course deleted successfully.")
+    messages.success(request, "Lesson deleted successfully.")
 
     return redirect("lesson_list")
-
 def lesson_search(request):
     
     query  = request.GET.get("search","")
@@ -115,12 +129,16 @@ def lesson_search(request):
 
     if request.user:
         if request.user.role == request.user.TEACHER:
-            courses = Course.objects.filter(instructor=request.user.id)
-            search_lesson = Lesson.objects.filter(instructor=request.user.id).order_by('order_number')
+            courses = Course.objects.filter(instructor=request.user)
+            search_lesson = Lesson.objects.filter(instructor=request.user).order_by('order_number')
 
-        else:
+        elif request.user.role == request.user.ADMIN:
             courses = Course.objects.all()
             search_lesson = Lesson.objects.all()
+
+        else:
+            return redirect("student_dashboard")
+
 
     
     # Start with all lessons
