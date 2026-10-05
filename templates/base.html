@@ -241,15 +241,15 @@ display:none;
 <!-- MAIN -->
 
 <div class="main">
-
+<!-- message -->
+{% include 'components/message.html' %}
     {% block body %}
 
     {% endblock body %}
 
 </div>
 
-<!-- message -->
-{% include 'components/message.html' %}
+
 {% include 'components/footer.html' %}
 {% comment %} footer  {% endcomment %}
 </body>

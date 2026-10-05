@@ -64,9 +64,35 @@
 
             {{ form.status }}
           </div>
-
+   
+         
               </fieldset>
+                <div class="d-flex align-items-center gap-2">
+              <a href="{% url 'lesson_list' course.id %}"
+                               class="btn btn-sm btn-danger delete-btn">
+                                Lesson
+                            </a>
         </form>
+         {% if user.role == user.STUDENT %}
+         
+           
+                   <form method="POST" action="{% url 'enrollment' course.id %}">
+                      {% csrf_token %}
+                      {% if enrolled == True %}
+                      <button type="submit" class="btn btn-sm btn-warning">Enrolled</button>
+                      {% else %}
+                      <button type="submit" class="btn btn-sm btn-warning">Enroll</button>
+                      {% endif %}
+                  </form>
+                
+
+           </div>
+         
+
+          
+           
+           {% endif %}
+
       </div>
     </div>
   </div>

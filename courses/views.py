@@ -7,6 +7,7 @@ from django.core.paginator import Paginator
 from django.contrib import messages
 from django.db.models import Q
 from .utils import get_courses_by_user
+from enrollments.models import Enrollment
 
 
 
@@ -34,18 +35,25 @@ def edit_course(request,id):
     return render(request,"courses/course_update.html",{'form':form})
 
 def view_course(request,id):
-    get_course = get_object_or_404(Course,id=id)
-    form=CourseForm(instance=get_course)
-    return render(request,"courses/course_view.html",{'form':form})
+    course = get_object_or_404(Course,id=id)
+    lessons = course.lessons.filter(
+        course=id
+    ).order_by('order_number')
+    enrolled = course.enrollments.filter(
+        student=request.user
+    ).exists()
+    form=CourseForm(instance=course)
+    return render(request,"courses/course_view.html",{'form':form,'course':course,'enrolled':enrolled,'lessons':lessons})
 
 def list_course(request):
     get_course = get_courses_by_user(request.user)
-
+    enrolled = Course.objects.filter(enrollments__student=request.user,enrollments__status="active").values_list('id', flat=True)
+    
     paginator = Paginator(get_course, 5)  
     
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    return render(request,"courses/course_list.html",{'page_obj':page_obj})
+    return render(request,"courses/course_list.html",{'page_obj':page_obj,'enrolled':enrolled})
 
 def delete_course(request,id):
     get_course = get_object_or_404(Course,id=id)
