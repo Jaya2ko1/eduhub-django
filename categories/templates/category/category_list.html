@@ -36,9 +36,16 @@
                 </td>
 
                 <td>
+                  {% if user.role != user.STUDENT %}
                   <a href="{% url 'edit_category' category.id %}" class="btn btn-sm btn-warning">Edit</a>
+                  {% endif %}
 
-                  <a href="{% url 'delete_category' category.id %}" class="btn btn-sm btn-danger delete-btn">Delete</a>
+                  {% if user.role == user.ADMIN %}
+                  <form method="POST" action="{% url 'delete_category' category.id %}" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-danger delete-btn">Delete</button>
+                  </form>
+                  {% endif %}
                 </td>
               </tr>
             {% empty %}
