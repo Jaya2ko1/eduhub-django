@@ -94,6 +94,19 @@
 
                 </div>
               </fieldset>
+               
+        </form>
+
+        <form method="POST" action="{% url 'lesson_complete' lesson.id %}">
+            {% csrf_token %}
+            {% if check_progress == True %}
+              <button type="button" class="btn btn-sm btn-danger" disabled>
+                  Completed ✓
+              </button>
+            {% else %}
+              <button type="submit" class="btn btn-sm btn-warning">Mark as Completed</button>
+            {% endif %}
+    
         </form>
       </div>
     </div>

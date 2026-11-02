@@ -25,6 +25,33 @@
               <img src="{{ form.instance.thumbnail.url }}" class="rounded-circle mb-3" width="120" height="120" style="object-fit: cover;" />
             {% endif %}
 
+          {% comment %} progress {% endcomment %}
+          {% if enrolled == True %}
+<div class="card p-3 mb-3">
+    <h5>{{ course.title }}</h5>
+
+    <div class="d-flex justify-content-between mb-2">
+        <span>Course Progress</span>
+        <strong>{{ progress_percentage }}%</strong>
+    </div>
+
+    <div class="progress" style="height: 12px;">
+        <div
+            class="progress-bar bg-success"
+            role="progressbar"
+            style="width: {{ progress_percentage }}%;"
+            aria-valuenow="{{ progress_percentage }}"
+            aria-valuemin="0"
+            aria-valuemax="100">
+        </div>
+    </div>
+
+    <small class="text-muted mt-2">
+        {{ completed_lessons }} of {{ total_lessons }} lessons completed
+    </small>
+</div>
+{% endif %}
+
           </div>
 
           <div class="mb-3 plaintext">

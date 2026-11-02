@@ -52,7 +52,21 @@
                 <td>{{ course.instructor }}</td>
 
                 <td>₹ {{ course.price }}</td>
-
+                {% if user.role == user.STUDENT %}
+                <td>
+                    {% if course.published_lessons == 0 %}
+                        <span class="badge bg-danger">
+                            empty course
+                        </span>
+                    {% elif course.published_lessons == course.completed_lessons %}
+                        <span class="badge bg-success">
+                            Completed
+                        </span>
+                    {% else %}
+                    <span class="badge bg-warning">Active</span>
+                    {% endif %}
+                </td> 
+                {% else %}
                 <td>
                     {% if course.status == "published" %}
                         <span class="badge bg-success">
@@ -63,7 +77,8 @@
                             Draft
                         </span>
                     {% endif %}
-                </td> 
+                </td>
+                {% endif %} 
                                 
                 <td>
                             

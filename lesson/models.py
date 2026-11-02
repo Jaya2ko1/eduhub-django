@@ -44,7 +44,7 @@ class LessonProgress(models.Model):
     student = models.ForeignKey(User,on_delete=models.PROTECT,related_name="lesson_progress",limit_choices_to={"role": User.STUDENT})
     lesson = models.ForeignKey(Lesson,on_delete=models.CASCADE,related_name="lesson_progress")
     is_completed = models.BooleanField(default=False)
-    completed_at = models.DateTimeField(blank=True, null=True,)
+    completed_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -1,6 +1,6 @@
 from django.shortcuts import render,get_object_or_404,redirect
 from .forms import LessonForm
-from .models import Lesson,Course
+from .models import Lesson,Course,LessonProgress
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.db.models import Q
@@ -8,6 +8,7 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from courses.utils import get_courses_by_user
 from enrollments.models import Enrollment
+from django.utils import timezone
 
 
 
@@ -37,6 +38,7 @@ def get_next_order_number(request):
 
 
 # Create your views here.
+@login_required
 def lesson_create(request):
     if request.method == "POST":
         form = LessonForm(request.POST,request.FILES,user=request.user)
@@ -44,15 +46,17 @@ def lesson_create(request):
             lesson = form.save(commit=False)
             lesson.instructor = request.user
             lesson.save()
-            return redirect('lesson_list',lesson.course_id)
+            return redirect('lesson_list')
     else:
         form = LessonForm(user=request.user)
     return render(request,"lesson_create.html",{'form':form})
 
+
+@login_required
 def lesson_edit(request,id):
-    get_course_id = get_object_or_404(Lesson,id=id)
+    get_lesson = get_object_or_404(Lesson,id=id)
     if request.user.role == request.user.ADMIN:
-        lesson = get_object_or_404(Lesson, id=id)
+        lesson = get_lesson
     elif request.user.role == request.user.TEACHER:
         lesson = get_object_or_404(
             Lesson,
@@ -66,20 +70,62 @@ def lesson_edit(request,id):
         form = LessonForm(request.POST,request.FILES,instance=lesson,user=request.user)
         if form.is_valid():
             form.save()
-            return redirect('lesson_list',get_course_id.course.id)
+            return redirect('lesson_list',get_lesson.course.id)
     else:
         form=LessonForm(instance=lesson,user=request.user)
     return render(request,'lesson_update.html',{'form':form})
 
 @login_required
+def lesson_complete(request,id):
+    if request.method != "POST":
+        return redirect("lesson_detail", id=id)
+    if request.user.role != request.user.STUDENT:
+        return redirect("login")
+    lesson = get_object_or_404(Lesson,id=id,status="published")
+    is_enrolled = Enrollment.objects.filter(
+                course=lesson.course,
+                student=request.user,
+                status="active"
+            ).exists()
+    
+    if not is_enrolled:
+        messages.error(
+        request,
+            "You are unable to access this course. Please enroll first."
+        )
+        return redirect("lesson_list",lesson.course.id)
+    check_progress = LessonProgress.objects.filter(student=request.user,lesson=lesson,is_completed=True).exists()
+    if check_progress:
+        messages.error(
+            request,
+                "Lesson is already completed."
+            )
+    else:
+        LessonProgress.objects.create(
+            student = request.user,
+            lesson = lesson ,
+            is_completed = True,
+            completed_at = timezone.now()
+        )
+        messages.success(
+            request,
+                "Successfully marked lesson as completed."
+            )
+    return redirect("lesson_detail",id=id)
+
+
+
+
+
+@login_required
 def lesson_detail(request,id):
-    lesson = get_object_or_404(Lesson,id=id)
+    get_lesson = get_object_or_404(Lesson,id=id)
+
+    check_progress = False
+
     if request.user.role == request.user.ADMIN:
 
-        lesson = get_object_or_404(
-            Lesson,
-            id=id
-        )
+        lesson = get_lesson
 
     elif request.user.role == request.user.TEACHER:
 
@@ -91,10 +137,22 @@ def lesson_detail(request,id):
 
     elif request.user.role == request.user.STUDENT:
 
-        is_enrolled = Enrollment.objects.filter(
-            course=lesson.course,
+        lesson = get_object_or_404(
+                    Lesson,
+                    id=id,
+                    status="published"
+                ) 
+        
+        check_progress = LessonProgress.objects.filter(
             student=request.user,
-            status="active"
+            lesson=get_lesson,is_completed=True
+        ).exists()
+
+
+        is_enrolled = Enrollment.objects.filter(
+            course=get_lesson.course,
+            student=request.user,
+            status__in=["active","completed"]
         ).exists()
 
         if not is_enrolled:
@@ -104,20 +162,17 @@ def lesson_detail(request,id):
             )
             return redirect("lesson_list",lesson.course.id)
 
-        lesson = get_object_or_404(
-            Lesson,
-            id=id,
-            status="published"
-        )
+        
     return render(
         request,
         "lesson_detail.html",
         {
-            "lesson": lesson
+            "lesson": lesson,
+            "check_progress":check_progress
         }
     )
 
-
+@login_required
 def lesson_list(request,course_id):
     if request.user.role == "teacher":
         all_lesson = Lesson.objects.filter(instructor=request.user,course=course_id).order_by('order_number')
@@ -125,13 +180,16 @@ def lesson_list(request,course_id):
         all_lesson = Lesson.objects.filter(status="published",course=course_id).order_by('order_number')
     else:
         all_lesson = Lesson.objects.filter(course=course_id).order_by('order_number')
-        
+
+    
+ 
     paginator = Paginator(all_lesson, 5) 
         
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     return render(request,"lesson_list.html",{'page_obj':page_obj})
 
+@login_required
 def lesson_delete(request,id):
    
     get_course_id = get_object_or_404(Lesson,id=id)    
@@ -156,6 +214,7 @@ def lesson_delete(request,id):
 
     return redirect("lesson_list",get_course_id.course.id)
 
+@login_required
 def lesson_search(request):
 
     query = request.GET.get("search", "")

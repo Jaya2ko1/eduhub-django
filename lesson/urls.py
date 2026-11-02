@@ -5,9 +5,10 @@ urlpatterns = [
     path('create/',views.lesson_create,name="lesson_create"),
     path('edit/<int:id>/',views.lesson_edit,name="lesson_edit"),
     path('detail/<int:id>/',views.lesson_detail,name="lesson_detail"),
-    path('list/<int:course_id>',views.lesson_list,name="lesson_list"),
+    path('list/<int:course_id>/',views.lesson_list,name="lesson_list"),
     path('search/',views.lesson_search,name="lesson_search"),
     path('delete/<int:id>/',views.lesson_delete,name="lesson_delete"),
+    path('<int:id>/complete/',views.lesson_complete,name="lesson_complete"),
     path(
         "next-order-number/",
         views.get_next_order_number,

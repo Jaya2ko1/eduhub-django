@@ -8,6 +8,9 @@ from django.contrib import messages
 from django.db.models import Q
 from .utils import get_courses_by_user
 from enrollments.models import Enrollment
+from django.db.models import Count
+from django.contrib.auth.decorators import login_required
+
 
 
 
@@ -34,19 +37,72 @@ def edit_course(request,id):
         form=CourseForm(instance=get_course)
     return render(request,"courses/course_update.html",{'form':form})
 
-def view_course(request,id):
-    course = get_object_or_404(Course,id=id)
-    lessons = course.lessons.filter(
-        course=id
-    ).order_by('order_number')
-    enrolled = course.enrollments.filter(
+
+@login_required
+def view_course(request, id):
+    course = get_object_or_404(Course, id=id)
+
+    enrollment = course.enrollments.filter(
         student=request.user
-    ).exists()
-    form=CourseForm(instance=course)
-    return render(request,"courses/course_view.html",{'form':form,'course':course,'enrolled':enrolled,'lessons':lessons})
+    ).first()
+
+    enrolled = enrollment is not None
+    
+    completed_lessons = course.lessons.filter(
+        lesson_progress__is_completed=True,
+        status="published",
+        lesson_progress__student=request.user
+    ).values("id").distinct().count()
+
+    total_lessons = course.lessons.filter(
+        status="published"
+    ).count()
+
+    progress_percentage = (
+        round(completed_lessons / total_lessons * 100)
+        if total_lessons > 0 else 0
+    )
+
+    if (
+        enrollment is not None
+        and total_lessons > 0
+        and completed_lessons == total_lessons
+    ):
+        if enrollment.status != "completed":
+            enrollment.status = "completed"
+            enrollment.save(update_fields=["status"])
+
+    form = CourseForm(instance=course)
+
+    return render(request, "courses/course_view.html", {
+        "form": form,
+        "course": course,
+        "enrolled": enrolled,
+        "progress_percentage": progress_percentage,
+        "completed_lessons": completed_lessons,
+        "total_lessons": total_lessons,
+    })
 
 def list_course(request):
-    get_course = get_courses_by_user(request.user)
+    get_course = get_courses_by_user(request.user).annotate(
+        published_lessons=Count(
+            "lessons",
+            filter=Q(lessons__status="published"),
+            distinct=True
+        ),
+        completed_lessons=Count(
+            "lessons__lesson_progress",
+            filter=Q(
+                lessons__status="published",
+                lessons__lesson_progress__student=request.user,
+                lessons__lesson_progress__is_completed=True
+            ),
+            distinct=True
+        )
+    )
+    for less in get_course:
+        print(less.completed_lessons)
+    
     enrolled = Course.objects.filter(enrollments__student=request.user,enrollments__status="active").values_list('id', flat=True)
     
     paginator = Paginator(get_course, 5)  
