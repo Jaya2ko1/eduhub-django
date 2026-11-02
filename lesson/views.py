@@ -40,13 +40,16 @@ def get_next_order_number(request):
 # Create your views here.
 @login_required
 def lesson_create(request):
+    if request.user.role not in (request.user.ADMIN, request.user.TEACHER):
+        return redirect('student_dashboard')
     if request.method == "POST":
         form = LessonForm(request.POST,request.FILES,user=request.user)
         if form.is_valid():
             lesson = form.save(commit=False)
-            lesson.instructor = request.user
+            # The course's teacher owns the lesson, even when an admin creates it.
+            lesson.instructor = lesson.course.instructor
             lesson.save()
-            return redirect('lesson_list')
+            return redirect('lesson_list', lesson.course.id)
     else:
         form = LessonForm(user=request.user)
     return render(request,"lesson_create.html",{'form':form})

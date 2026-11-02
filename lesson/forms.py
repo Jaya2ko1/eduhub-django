@@ -37,5 +37,8 @@ class LessonForm(forms.ModelForm):
             if user.role == user.TEACHER:
                 self.fields['course'].queryset = Course.objects.filter(instructor=user)
                 
-            else:
+            elif user.role == user.ADMIN:
                 self.fields['course'].queryset = Course.objects.all()
+
+            else:
+                self.fields['course'].queryset = Course.objects.none()
