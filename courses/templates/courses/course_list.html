@@ -112,10 +112,14 @@
                                 Edit
                             </a>
 
-                            <a href="{% url 'delete_course' course.id %}"
-                               class="btn btn-sm btn-danger delete-btn">
-                                Delete
-                            </a>
+                            <form method="POST"
+                                  action="{% url 'delete_course' course.id %}"
+                                  class="mb-0">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-danger delete-btn">
+                                    Delete
+                                </button>
+                            </form>
 
                         {% endif %}
 

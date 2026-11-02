@@ -10,13 +10,29 @@ from .utils import get_courses_by_user
 from enrollments.models import Enrollment
 from django.db.models import Count
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 
 
+
+
+def can_manage_courses(user):
+    return user.role in (user.ADMIN, user.TEACHER)
+
+
+def get_manageable_course(user, id):
+    # Teachers can only manage their own courses; admins can manage any course.
+    if user.role == user.TEACHER:
+        return get_object_or_404(Course, id=id, instructor=user)
+    return get_object_or_404(Course, id=id)
 
 
 # Create your views here.
 
+@login_required
 def create_course(request):
+    if not can_manage_courses(request.user):
+        messages.error(request, "Only teachers and admins can create courses.")
+        return redirect('list_course')
     if request.method == "POST":
         form = CourseForm(request.POST,request.FILES,user=request.user)
         if form.is_valid():
@@ -26,15 +42,19 @@ def create_course(request):
         form = CourseForm(user=request.user)
     return render(request,"courses/course_create.html",{'form':form})
 
+@login_required
 def edit_course(request,id):
-    get_course = get_object_or_404(Course,id=id)
+    if not can_manage_courses(request.user):
+        messages.error(request, "Only teachers and admins can edit courses.")
+        return redirect('list_course')
+    get_course = get_manageable_course(request.user, id)
     if request.method == "POST":
-        form = CourseForm(request.POST,request.FILES,instance=get_course)
+        form = CourseForm(request.POST,request.FILES,instance=get_course,user=request.user)
         if form.is_valid():
             form.save()
             return redirect('list_course')
     else:
-        form=CourseForm(instance=get_course)
+        form=CourseForm(instance=get_course,user=request.user)
     return render(request,"courses/course_update.html",{'form':form})
 
 
@@ -83,6 +103,7 @@ def view_course(request, id):
         "total_lessons": total_lessons,
     })
 
+@login_required
 def list_course(request):
     get_course = get_courses_by_user(request.user).annotate(
         published_lessons=Count(
@@ -111,14 +132,20 @@ def list_course(request):
     page_obj = paginator.get_page(page_number)
     return render(request,"courses/course_list.html",{'page_obj':page_obj,'enrolled':enrolled})
 
+@login_required
+@require_POST
 def delete_course(request,id):
-    get_course = get_object_or_404(Course,id=id)
+    if not can_manage_courses(request.user):
+        messages.error(request, "Only teachers and admins can delete courses.")
+        return redirect('list_course')
+    get_course = get_manageable_course(request.user, id)
     get_course.delete() 
     messages.success(request, "Course deleted successfully.") 
     return redirect('list_course') 
 
 
 
+@login_required
 def search_course(request):
     categories = Category.objects.all()
     courses = get_courses_by_user(request.user)

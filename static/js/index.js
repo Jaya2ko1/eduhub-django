@@ -6,6 +6,8 @@ function confirmDelete(selector) {
             e.preventDefault();
 
             const url = this.href;
+            // Delete buttons submit their POST form; links (which have no .form) keep navigating.
+            const form = this.form;
 
             Swal.fire({
                 title: "Delete This?",
@@ -19,7 +21,11 @@ function confirmDelete(selector) {
             }).then((result) => {
 
                 if (result.isConfirmed) {
-                    window.location.href = url;
+                    if (form) {
+                        form.submit();
+                    } else {
+                        window.location.href = url;
+                    }
                 }
 
             });
