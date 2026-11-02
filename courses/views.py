@@ -83,15 +83,6 @@ def view_course(request, id):
         if total_lessons > 0 else 0
     )
 
-    if (
-        enrollment is not None
-        and total_lessons > 0
-        and completed_lessons == total_lessons
-    ):
-        if enrollment.status != "completed":
-            enrollment.status = "completed"
-            enrollment.save(update_fields=["status"])
-
     form = CourseForm(instance=course)
 
     return render(request, "courses/course_view.html", {

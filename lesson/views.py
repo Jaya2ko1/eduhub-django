@@ -8,6 +8,7 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from courses.utils import get_courses_by_user
 from enrollments.models import Enrollment
+from enrollments.services import complete_enrollment_if_finished
 from django.utils import timezone
 
 
@@ -85,13 +86,13 @@ def lesson_complete(request,id):
     if request.user.role != request.user.STUDENT:
         return redirect("login")
     lesson = get_object_or_404(Lesson,id=id,status="published")
-    is_enrolled = Enrollment.objects.filter(
+    enrollment = Enrollment.objects.filter(
                 course=lesson.course,
                 student=request.user,
                 status="active"
-            ).exists()
+            ).first()
     
-    if not is_enrolled:
+    if enrollment is None:
         messages.error(
         request,
             "You are unable to access this course. Please enroll first."
@@ -114,6 +115,11 @@ def lesson_complete(request,id):
             request,
                 "Successfully marked lesson as completed."
             )
+        if complete_enrollment_if_finished(enrollment):
+            messages.success(
+                request,
+                    "Congratulations! You have completed this course."
+                )
     return redirect("lesson_detail",id=id)
 
 
