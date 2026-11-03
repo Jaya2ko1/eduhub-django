@@ -85,7 +85,8 @@ def lesson_complete(request,id):
     if request.method != "POST":
         return redirect("lesson_detail", id=id)
     if request.user.role != request.user.STUDENT:
-        return redirect("login")
+        messages.error(request, "Only students can complete lessons.")
+        return redirect("lesson_detail", id=id)
     lesson = get_object_or_404(Lesson,id=id,status="published")
     enrollment = Enrollment.objects.filter(
                 course=lesson.course,
@@ -94,6 +95,9 @@ def lesson_complete(request,id):
             ).first()
     
     if enrollment is None:
+        if Enrollment.objects.filter(course=lesson.course, student=request.user, status="completed").exists():
+            messages.error(request, "You have already completed this course.")
+            return redirect("lesson_detail", id=id)
         messages.error(
         request,
             "You are unable to access this course. Please enroll first."
@@ -134,6 +138,7 @@ def lesson_detail(request,id):
     get_lesson = get_object_or_404(Lesson,id=id)
 
     check_progress = False
+    can_complete = False
 
     if request.user.role == request.user.ADMIN:
 
@@ -161,13 +166,15 @@ def lesson_detail(request,id):
         ).exists()
 
 
-        is_enrolled = Enrollment.objects.filter(
+        enrollment_status = Enrollment.objects.filter(
             course=get_lesson.course,
             student=request.user,
             status__in=["active","completed"]
-        ).exists()
+        ).values_list("status", flat=True).first()
+        # Only active students can still mark lessons as completed.
+        can_complete = enrollment_status == "active" and not check_progress
 
-        if not is_enrolled:
+        if enrollment_status is None:
             messages.error(
             request,
                 "You are unable to access this course. Please enroll first."
@@ -180,7 +187,8 @@ def lesson_detail(request,id):
         "lesson_detail.html",
         {
             "lesson": lesson,
-            "check_progress":check_progress
+            "check_progress":check_progress,
+            "can_complete": can_complete,
         }
     )
 

@@ -54,16 +54,14 @@
                 <td>₹ {{ course.price }}</td>
                 {% if user.role == user.STUDENT %}
                 <td>
-                    {% if course.published_lessons == 0 %}
-                        <span class="badge bg-danger">
-                            empty course
-                        </span>
-                    {% elif course.published_lessons == course.completed_lessons %}
-                        <span class="badge bg-success">
-                            Completed
-                        </span>
+                    {% if course.my_enrollment_status == "completed" %}
+                        <span class="badge bg-success">Completed</span>
+                    {% elif course.my_enrollment_status == "active" %}
+                        <span class="badge bg-warning">Active</span>
+                    {% elif course.my_enrollment_status == "cancelled" %}
+                        <span class="badge bg-secondary">Cancelled</span>
                     {% else %}
-                    <span class="badge bg-warning">Active</span>
+                        <span class="badge bg-light text-dark">Not enrolled</span>
                     {% endif %}
                 </td> 
                 {% else %}
@@ -85,18 +83,16 @@
                     <div class="d-flex align-items-center gap-2">
 
                         {% if user.role == user.STUDENT %}
-                            <form method="POST"
-                                  action="{% url 'enrollment' course.id %}"
-                                  class="mb-0">
+                            {% if course.my_enrollment_status == "active" %}
+                                <button type="button" class="btn btn-sm btn-warning" disabled>Enrolled</button>
+                            {% elif course.my_enrollment_status == "completed" %}
+                                <button type="button" class="btn btn-sm btn-success" disabled>Completed</button>
+                            {% else %}
+                            <form method="POST" action="{% url 'enrollment' course.id %}" class="mb-0">
                                 {% csrf_token %}
-
-                              
-                                  {% if course.id in enrolled %}
-                                  <button type="submit" class="btn btn-sm btn-warning">Enrolled</button>
-                                  {% else %}
-                                  <button type="submit" class="btn btn-sm btn-warning">Enroll</button>
-                                  {% endif %}
-                                      </form>
+                                <button type="submit" class="btn btn-sm btn-warning">{% if course.my_enrollment_status == "cancelled" %}Re-enroll{% else %}Enroll{% endif %}</button>
+                            </form>
+                            {% endif %}
           
                         {% endif %}
 

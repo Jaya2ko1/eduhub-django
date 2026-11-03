@@ -247,3 +247,71 @@ class EnrollmentIntegrityTests(EnrollmentTestData):
                 response = self.client.post(reverse("enrollment", args=[self.course.id]))
                 self.assertIn("You are already enrolled in this course.", self.messages_for(response))
                 self.assertEqual(self.status_of(enrollment), status)
+
+
+class EnrollmentStatusDisplayTests(EnrollmentTestData):
+    """Messages, buttons and status badges follow the student's real enrollment."""
+
+    def detail(self, user, lesson=None):
+        self.client.force_login(user)
+        return self.client.get(reverse("lesson_detail", args=[(lesson or self.lessons[0]).id]))
+
+    def test_completed_student_gets_course_completed_message(self):
+        self.enroll(status="completed")
+        self.client.force_login(self.student)
+        response = self.complete_via_view(self.lessons[0])
+        self.assertRedirects(response, reverse("lesson_detail", args=[self.lessons[0].id]))
+        self.assertIn("You have already completed this course.", self.messages_for(response))
+
+    def test_teacher_completing_lesson_is_sent_back_with_message(self):
+        self.client.force_login(self.teacher)
+        response = self.complete_via_view(self.lessons[0])
+        self.assertRedirects(response, reverse("lesson_detail", args=[self.lessons[0].id]))
+        self.assertIn("Only students can complete lessons.", self.messages_for(response))
+        self.assertFalse(LessonProgress.objects.exists())
+
+    def test_mark_button_only_for_active_students_with_open_lessons(self):
+        self.enroll()
+        self.assertContains(self.detail(self.student), "Mark as Completed")
+        self.record_progress(self.lessons[:1])
+        response = self.detail(self.student)
+        self.assertNotContains(response, "Mark as Completed")
+        self.assertContains(response, "Completed ✓")
+
+    def test_mark_button_hidden_for_completed_students_and_staff(self):
+        self.enroll(status="completed")
+        self.assertNotContains(self.detail(self.student), "Mark as Completed")
+        self.assertNotContains(self.detail(self.teacher), "Mark as Completed")
+
+    def test_course_list_badges_and_buttons_follow_enrollment(self):
+        statuses = {"active": ("Active", "Enrolled"), "completed": ("Completed", "Completed"), "cancelled": ("Cancelled", "Re-enroll")}
+        self.client.force_login(self.student)
+        response = self.client.get(reverse("list_course"))
+        self.assertContains(response, "Not enrolled")
+        self.assertRegex(response.content.decode(), r">Enroll</button>")
+        for status, (badge, button) in statuses.items():
+            with self.subTest(status=status):
+                Enrollment.objects.update_or_create(student=self.student, course=self.course, defaults={"status": status})
+                body = self.client.get(reverse("list_course")).content.decode()
+                self.assertIn(f">{badge}</span>", body)
+                self.assertRegex(body, rf">{button}</button>")
+                self.assertNotIn("Not enrolled", body)
+
+    def test_course_page_for_cancelled_student(self):
+        self.enroll(status="cancelled")
+        self.client.force_login(self.student)
+        response = self.client.get(reverse("view_course", args=[self.course.id]))
+        self.assertFalse(response.context["enrolled"])
+        self.assertNotContains(response, "Course Progress")
+        self.assertContains(response, "Cancelled")
+        self.assertContains(response, "Re-enroll")
+
+    def test_course_page_for_active_and_completed_students(self):
+        for status, button in (("active", "Enrolled"), ("completed", "Completed")):
+            with self.subTest(status=status):
+                Enrollment.objects.update_or_create(student=self.student, course=self.course, defaults={"status": status})
+                self.client.force_login(self.student)
+                response = self.client.get(reverse("view_course", args=[self.course.id]))
+                self.assertTrue(response.context["enrolled"])
+                self.assertContains(response, "Course Progress")
+                self.assertRegex(response.content.decode(), rf"disabled>{button}</button>")

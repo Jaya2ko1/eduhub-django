@@ -51,7 +51,10 @@
                   {% if user.role != 'student' %}
                   <a href="{% url 'lesson_edit' lesson.id %}" class="btn btn-sm btn-warning">Edit</a>
 
-                  <a href="{% url 'lesson_delete' lesson.id %}" class="btn btn-sm btn-danger delete-btn">Delete</a>
+                  <form method="POST" action="{% url 'lesson_delete' lesson.id %}" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-danger delete-btn">Delete</button>
+                  </form>
                    {% endif %}
                 </td>
                

@@ -97,17 +97,16 @@
                
         </form>
 
-        <form method="POST" action="{% url 'lesson_complete' lesson.id %}">
-            {% csrf_token %}
-            {% if check_progress == True %}
-              <button type="button" class="btn btn-sm btn-danger" disabled>
-                  Completed ✓
-              </button>
-            {% else %}
+        {% if check_progress == True %}
+          <button type="button" class="btn btn-sm btn-danger" disabled>
+              Completed ✓
+          </button>
+        {% elif can_complete %}
+          <form method="POST" action="{% url 'lesson_complete' lesson.id %}">
+              {% csrf_token %}
               <button type="submit" class="btn btn-sm btn-warning">Mark as Completed</button>
-            {% endif %}
-    
-        </form>
+          </form>
+        {% endif %}
       </div>
     </div>
   </div>

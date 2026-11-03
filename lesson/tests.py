@@ -352,3 +352,13 @@ class LessonSearchInputValidationTests(LessonTestData):
         self.client.force_login(self.admin)
         response = self.client.get(reverse("lesson_search"), {"course": self.other_course.id})
         self.assertNotContains(response, "Intro")
+
+
+class LessonSearchDeleteButtonTests(LessonTestData):
+
+    def test_search_page_deletes_with_post_form(self):
+        self.client.force_login(self.teacher)
+        response = self.client.get(reverse("lesson_search"))
+        delete_url = reverse("lesson_delete", args=[self.lesson.id])
+        self.assertContains(response, f'action="{delete_url}"')
+        self.assertNotContains(response, f'href="{delete_url}"')

@@ -9,7 +9,7 @@ from django.contrib import messages
 from django.db.models import Q
 from .utils import get_courses_by_user, can_view_course
 from enrollments.models import Enrollment
-from django.db.models import Count
+from django.db.models import OuterRef, Subquery
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 
@@ -69,7 +69,8 @@ def view_course(request, id):
         student=request.user
     ).first()
 
-    enrolled = enrollment is not None
+    enrollment_status = enrollment.status if enrollment else None
+    enrolled = enrollment_status in ("active", "completed")
     
     completed_lessons = course.lessons.filter(
         lesson_progress__is_completed=True,
@@ -92,6 +93,7 @@ def view_course(request, id):
         "form": form,
         "course": course,
         "enrolled": enrolled,
+        "enrollment_status": enrollment_status,
         "progress_percentage": progress_percentage,
         "completed_lessons": completed_lessons,
         "total_lessons": total_lessons,
@@ -99,32 +101,17 @@ def view_course(request, id):
 
 @login_required
 def list_course(request):
+    # Each course carries the current user's own enrollment status (or None).
+    my_enrollment = Enrollment.objects.filter(course=OuterRef("pk"), student=request.user)
     get_course = get_courses_by_user(request.user).annotate(
-        published_lessons=Count(
-            "lessons",
-            filter=Q(lessons__status="published"),
-            distinct=True
-        ),
-        completed_lessons=Count(
-            "lessons__lesson_progress",
-            filter=Q(
-                lessons__status="published",
-                lessons__lesson_progress__student=request.user,
-                lessons__lesson_progress__is_completed=True
-            ),
-            distinct=True
-        )
+        my_enrollment_status=Subquery(my_enrollment.values("status")[:1])
     )
-    for less in get_course:
-        print(less.completed_lessons)
-    
-    enrolled = Course.objects.filter(enrollments__student=request.user,enrollments__status="active").values_list('id', flat=True)
-    
-    paginator = Paginator(get_course, 5)  
-    
+
+    paginator = Paginator(get_course, 5)
+
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    return render(request,"courses/course_list.html",{'page_obj':page_obj,'enrolled':enrolled})
+    return render(request,"courses/course_list.html",{'page_obj':page_obj})
 
 @login_required
 @require_POST

@@ -103,14 +103,19 @@
          {% if user.role == user.STUDENT %}
          
            
+                   {% if enrollment_status == "active" %}
+                      <button type="button" class="btn btn-sm btn-warning" disabled>Enrolled</button>
+                   {% elif enrollment_status == "completed" %}
+                      <button type="button" class="btn btn-sm btn-success" disabled>Completed</button>
+                   {% else %}
+                   {% if enrollment_status == "cancelled" %}
+                      <span class="badge bg-secondary">Cancelled</span>
+                   {% endif %}
                    <form method="POST" action="{% url 'enrollment' course.id %}">
                       {% csrf_token %}
-                      {% if enrolled == True %}
-                      <button type="submit" class="btn btn-sm btn-warning">Enrolled</button>
-                      {% else %}
-                      <button type="submit" class="btn btn-sm btn-warning">Enroll</button>
-                      {% endif %}
+                      <button type="submit" class="btn btn-sm btn-warning">{% if enrollment_status == "cancelled" %}Re-enroll{% else %}Enroll{% endif %}</button>
                   </form>
+                   {% endif %}
                 
 
            </div>
