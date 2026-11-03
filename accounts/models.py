@@ -19,3 +19,12 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.username
+
+    def save(self, *args, **kwargs):
+        # Django superusers always act as EduHub admins.
+        if self.is_superuser and self.role != self.ADMIN:
+            self.role = self.ADMIN
+            update_fields = kwargs.get("update_fields")
+            if update_fields is not None:
+                kwargs["update_fields"] = {*update_fields, "role"}
+        super().save(*args, **kwargs)

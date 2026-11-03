@@ -1,4 +1,5 @@
 from django.shortcuts import render,redirect,get_object_or_404
+from django.http import Http404
 
 from .models import Category
 from .forms import CourseForm
@@ -6,7 +7,7 @@ from .models import Course
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.db.models import Q
-from .utils import get_courses_by_user
+from .utils import get_courses_by_user, can_view_course
 from enrollments.models import Enrollment
 from django.db.models import Count
 from django.contrib.auth.decorators import login_required
@@ -61,6 +62,8 @@ def edit_course(request,id):
 @login_required
 def view_course(request, id):
     course = get_object_or_404(Course, id=id)
+    if not can_view_course(request.user, course):
+        raise Http404
 
     enrollment = course.enrollments.filter(
         student=request.user

@@ -10,6 +10,7 @@ from django.urls import reverse
 
 from accounts.models import User
 from categories.models import Category
+from enrollments.models import Enrollment
 from .models import Course
 
 
@@ -284,3 +285,62 @@ class CourseCreateTests(TestCase):
         response = self.client.post(reverse("create_course"), self.course_data(instructor=self.other_teacher.id))
         self.assertRedirects(response, reverse("list_course"))
         self.assertEqual(Course.objects.get(title="New Course").instructor, self.other_teacher)
+
+
+class CourseVisibilityTests(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin = User.objects.create_user(username="admin1", email="admin1@test.com", password="pass12345!", role=User.ADMIN)
+        cls.teacher = User.objects.create_user(username="teacher1", email="teacher1@test.com", password="pass12345!", role=User.TEACHER)
+        cls.other_teacher = User.objects.create_user(username="teacher2", email="teacher2@test.com", password="pass12345!", role=User.TEACHER)
+        cls.student = User.objects.create_user(username="student1", email="student1@test.com", password="pass12345!", role=User.STUDENT)
+        cls.category = Category.objects.create(category="Programming", description="Programming courses")
+        cls.published = cls.make_course("Published Course", "published")
+        cls.draft = cls.make_course("Draft Course", "draft")
+
+    @classmethod
+    def make_course(cls, title, status):
+        return Course.objects.create(
+            title=title,
+            category=cls.category,
+            instructor=cls.teacher,
+            short_description="short",
+            full_description="full",
+            price=100,
+            status=status,
+        )
+
+    def view_status(self, user, course_id):
+        self.client.force_login(user)
+        return self.client.get(reverse("view_course", args=[course_id])).status_code
+
+    def test_student_can_view_published_course(self):
+        self.assertEqual(self.view_status(self.student, self.published.id), 200)
+
+    def test_student_cannot_view_draft_course(self):
+        self.assertEqual(self.view_status(self.student, self.draft.id), 404)
+
+    def test_enrolled_student_can_view_course_that_became_draft(self):
+        for status in ("active", "completed"):
+            with self.subTest(enrollment=status):
+                Enrollment.objects.update_or_create(student=self.student, course=self.draft, defaults={"status": status})
+                self.assertEqual(self.view_status(self.student, self.draft.id), 200)
+
+    def test_cancelled_student_cannot_view_draft_course(self):
+        Enrollment.objects.create(student=self.student, course=self.draft, status="cancelled")
+        self.assertEqual(self.view_status(self.student, self.draft.id), 404)
+
+    def test_teacher_can_view_own_draft_and_published_courses(self):
+        self.assertEqual(self.view_status(self.teacher, self.draft.id), 200)
+        self.assertEqual(self.view_status(self.other_teacher, self.published.id), 200)
+
+    def test_teacher_cannot_view_another_teachers_draft(self):
+        self.assertEqual(self.view_status(self.other_teacher, self.draft.id), 404)
+
+    def test_admin_can_view_all_courses(self):
+        self.assertEqual(self.view_status(self.admin, self.draft.id), 200)
+        self.assertEqual(self.view_status(self.admin, self.published.id), 200)
+
+    def test_missing_course_returns_404(self):
+        self.assertEqual(self.view_status(self.admin, 99999), 404)

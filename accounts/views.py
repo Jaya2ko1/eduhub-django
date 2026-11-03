@@ -55,12 +55,16 @@ def auth_logout(request):
 
 @login_required
 def admin_dashboard(request):
+    if request.user.role != request.user.ADMIN:
+        return user_role(request)
     return render(request,'dashboard/admin_dashboard.html')
 @login_required
 def student_dashboard(request):
     return render(request,'dashboard/student_dashboard.html')
 @login_required
 def instructor_dashboard(request):
+    if request.user.role != request.user.TEACHER:
+        return user_role(request)
     return render(request,'dashboard/instructor_dashboard.html')
 
 

@@ -1,4 +1,5 @@
 from django.shortcuts import render,get_object_or_404,redirect
+from django.http import Http404
 from .forms import LessonForm
 from .models import Lesson,Course,LessonProgress
 from django.core.paginator import Paginator
@@ -6,7 +7,7 @@ from django.contrib import messages
 from django.db.models import Q
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
-from courses.utils import get_courses_by_user
+from courses.utils import get_courses_by_user, can_view_course
 from enrollments.models import Enrollment
 from enrollments.services import complete_enrollment_if_finished
 from django.utils import timezone
@@ -65,7 +66,7 @@ def lesson_edit(request,id):
         lesson = get_object_or_404(
             Lesson,
             id=id,
-            instructor=request.user
+            course__instructor=request.user
         )
 
     else:
@@ -141,7 +142,7 @@ def lesson_detail(request,id):
         lesson = get_object_or_404(
             Lesson,
             id=id,
-            instructor=request.user
+            course__instructor=request.user
         )
 
     elif request.user.role == request.user.STUDENT:
@@ -183,8 +184,11 @@ def lesson_detail(request,id):
 
 @login_required
 def lesson_list(request,course_id):
+    course = get_object_or_404(Course, id=course_id)
+    if not can_view_course(request.user, course):
+        raise Http404
     if request.user.role == "teacher":
-        all_lesson = Lesson.objects.filter(instructor=request.user,course=course_id).order_by('order_number')
+        all_lesson = Lesson.objects.filter(course__instructor=request.user,course=course_id).order_by('order_number')
     elif request.user.role == "student":
         all_lesson = Lesson.objects.filter(status="published",course=course_id).order_by('order_number')
     else:
@@ -212,7 +216,7 @@ def lesson_delete(request,id):
         lesson = get_object_or_404(
             Lesson,
             id=id,
-            instructor=request.user
+            course__instructor=request.user
         )
 
     else:
@@ -247,15 +251,18 @@ def lesson_search(request):
         ).order_by("-created_at")
 
         search_lesson = Lesson.objects.filter(
-            instructor=request.user
+            course__instructor=request.user
         )
 
     elif request.user.role == request.user.STUDENT:
 
-        courses = Course.objects.all().order_by("-created_at")
+        courses = Course.objects.filter(
+            status="published"
+        ).order_by("-created_at")
 
         search_lesson = Lesson.objects.filter(
-            status="published"
+            status="published",
+            course__status="published"
         )
 
     else:
