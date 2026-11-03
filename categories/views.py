@@ -86,10 +86,11 @@ def search(request):
             Q(description__icontains=query)
         ).order_by("-id")
 
-    if category:
+    # Ignore invalid filter values instead of crashing with a 500.
+    if category.isdigit():
         categories = categories.filter(id = category)
 
-    if status:
+    if status in ("True", "False"):
         categories = categories.filter(status = status)
 
     paginator = Paginator(categories, 5)  

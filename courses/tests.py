@@ -344,3 +344,34 @@ class CourseVisibilityTests(TestCase):
 
     def test_missing_course_returns_404(self):
         self.assertEqual(self.view_status(self.admin, 99999), 404)
+
+
+class CourseSearchInputValidationTests(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin = User.objects.create_user(username="admin1", email="admin1@test.com", password="pass12345!", role=User.ADMIN)
+        cls.teacher = User.objects.create_user(username="teacher1", email="teacher1@test.com", password="pass12345!", role=User.TEACHER)
+        cls.category = Category.objects.create(category="Programming", description="Programming courses")
+        for title, status in (("Published Course", "published"), ("Draft Course", "draft")):
+            Course.objects.create(
+                title=title,
+                category=cls.category,
+                instructor=cls.teacher,
+                short_description="short",
+                full_description="full",
+                price=100,
+                status=status,
+            )
+
+    def test_non_numeric_category_is_ignored(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("search_course"), {"category": "abc"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["courses"]), 2)
+
+    def test_valid_category_filter_still_works(self):
+        other_category = Category.objects.create(category="Design", description="Design courses")
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("search_course"), {"category": other_category.id})
+        self.assertEqual(list(response.context["courses"]), [])

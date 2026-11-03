@@ -222,3 +222,19 @@ class CourseCreateApiTests(CourseApiTestData):
         response = self.client_for(self.student).post(reverse("course-create"), self.course_payload(), format="json")
         self.assertEqual(response.status_code, 403)
         self.assertFalse(Course.objects.filter(title="API Course").exists())
+
+
+class CourseFilterInputValidationTests(CourseApiTestData):
+
+    def test_non_numeric_category_or_instructor_returns_400(self):
+        client = self.client_for(self.admin)
+        for name in ("category", "instructor"):
+            with self.subTest(param=name):
+                response = client.get(reverse("course_filter"), {name: "abc"})
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(response.json(), {name: ["Must be an integer."]})
+
+    def test_valid_numeric_filters_still_work(self):
+        response = self.client_for(self.admin).get(reverse("course_filter"), {"instructor": self.other_teacher.id})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.titles(response), ["Draft T2", "Published T2"])

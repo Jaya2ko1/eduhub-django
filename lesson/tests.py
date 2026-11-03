@@ -338,3 +338,17 @@ class LessonOwnershipByCourseTests(LessonTestData):
         )
         self.client.force_login(self.teacher)
         self.assertEqual(self.client.get(reverse("lesson_edit", args=[stray.id])).status_code, 404)
+
+
+class LessonSearchInputValidationTests(LessonTestData):
+
+    def test_non_numeric_course_is_ignored(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("lesson_search"), {"course": "abc"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Intro")
+
+    def test_valid_course_filter_still_works(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("lesson_search"), {"course": self.other_course.id})
+        self.assertNotContains(response, "Intro")

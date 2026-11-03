@@ -228,3 +228,31 @@ class CategoryViewPermissionTests(TestCase):
                 response = self.client.get(url)
                 self.assertNotContains(response, reverse("edit_category", args=[self.category.id]))
                 self.assertNotContains(response, reverse("delete_category", args=[self.category.id]))
+
+
+class CategorySearchInputValidationTests(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin = User.objects.create_user(username="admin1", email="admin1@test.com", password="pass12345!", role=User.ADMIN)
+        cls.active = Category.objects.create(category="Programming", description="d", status=True)
+        cls.inactive = Category.objects.create(category="Archived", description="d", status=False)
+
+    def setUp(self):
+        self.client.force_login(self.admin)
+
+    def test_invalid_status_and_category_are_ignored(self):
+        for params in ({"status": "abc"}, {"category": "abc"}):
+            with self.subTest(params=params):
+                response = self.client.get(reverse("search"), params)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(len(response.context["page_obj"]), 2)
+
+    def test_inactive_filter_returns_inactive_and_keeps_option_selected(self):
+        response = self.client.get(reverse("search"), {"status": "False"})
+        self.assertEqual(list(response.context["page_obj"]), [self.inactive])
+        self.assertRegex(response.content.decode(), r'value="False"\s+selected')
+
+    def test_active_filter_returns_active(self):
+        response = self.client.get(reverse("search"), {"status": "True"})
+        self.assertEqual(list(response.context["page_obj"]), [self.active])

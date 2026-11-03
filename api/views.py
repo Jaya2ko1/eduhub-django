@@ -10,6 +10,7 @@ from .serializers import CourseSerializer
 from .permissions import IsTeacherOrAdmin
 from django.db.models import Q
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.exceptions import ValidationError
 
 
 def get_visible_courses(user):
@@ -110,6 +111,10 @@ class CourseFilterAPIView(ListAPIView):
         instructor = self.request.query_params.get("instructor")
         query = self.request.query_params.get("search")
 
+
+        for name, value in (("category", category), ("instructor", instructor)):
+            if value and not value.isdigit():
+                raise ValidationError({name: ["Must be an integer."]})
 
         if course_status:
             courses = courses.filter(status=course_status)

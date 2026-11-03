@@ -284,7 +284,8 @@ def lesson_search(request):
     # Course filter
     # --------------------------------
 
-    if course:
+    # Ignore non-numeric ids instead of crashing with a 500.
+    if course.isdigit():
         search_lesson = search_lesson.filter(
             course_id=course
         )

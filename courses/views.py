@@ -154,7 +154,8 @@ def search_course(request):
             Q(price__icontains=query)
         )
 
-    if category:
+    # Ignore non-numeric ids instead of crashing with a 500.
+    if category and category.isdigit():
         courses = courses.filter(category_id=category)
 
     if status:
