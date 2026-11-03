@@ -459,3 +459,36 @@ class LessonListQueryCountTests(LessonTestData):
                 self.add_lessons(4, start=10)
                 many = self.count_queries(url)
                 self.assertEqual(few, many)
+
+
+class NextOrderNumberTests(LessonTestData):
+
+    def order_number(self, user, course_id=None):
+        self.client.force_login(user)
+        params = {} if course_id is None else {"course_id": course_id}
+        return self.client.get(reverse("next_order_number"), params)
+
+    def test_teacher_gets_next_order_number_for_own_course(self):
+        response = self.order_number(self.teacher, self.course.id)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"order_number": 2})
+
+    def test_missing_course_id_still_returns_one(self):
+        self.assertEqual(self.order_number(self.teacher).json(), {"order_number": 1})
+
+    def test_non_numeric_course_id_returns_400(self):
+        response = self.order_number(self.teacher, "abc")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("error", response.json())
+
+    def test_teacher_cannot_query_another_teachers_course(self):
+        self.assertEqual(self.order_number(self.teacher, self.other_course.id).status_code, 404)
+        self.assertEqual(self.order_number(self.teacher, 99999).status_code, 404)
+
+    def test_admin_can_query_any_course(self):
+        response = self.order_number(self.admin, self.other_course.id)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"order_number": 1})
+
+    def test_student_is_forbidden(self):
+        self.assertEqual(self.order_number(self.student, self.course.id).status_code, 403)

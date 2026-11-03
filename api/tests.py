@@ -6,7 +6,7 @@ from rest_framework.test import APIClient, APIRequestFactory, force_authenticate
 from accounts.models import User
 from categories.models import Category
 from courses.models import Course
-from .views import CoursePaginationAPIView, CourseRetrieveAPIView
+from .views import CourseDeleteAPIView, CoursePaginationAPIView, CourseRetrieveAPIView
 
 
 class CourseApiTestData(TestCase):
@@ -238,3 +238,52 @@ class CourseFilterInputValidationTests(CourseApiTestData):
         response = self.client_for(self.admin).get(reverse("course_filter"), {"instructor": self.other_teacher.id})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(self.titles(response), ["Draft T2", "Published T2"])
+
+
+class CourseDeleteViewOwnershipTests(CourseApiTestData):
+
+    def delete(self, user, course):
+        request = APIRequestFactory().delete(f"/courses/{course.id}/")
+        force_authenticate(request, user=user)
+        return CourseDeleteAPIView.as_view()(request, pk=course.id)
+
+    def test_teacher_cannot_delete_another_teachers_course(self):
+        self.assertEqual(self.delete(self.teacher, self.other_published).status_code, 404)
+        self.assertTrue(Course.objects.filter(id=self.other_published.id).exists())
+
+    def test_teacher_can_delete_own_course(self):
+        self.assertEqual(self.delete(self.teacher, self.draft).status_code, 204)
+        self.assertFalse(Course.objects.filter(id=self.draft.id).exists())
+
+    def test_admin_can_delete_any_course(self):
+        self.assertEqual(self.delete(self.admin, self.other_draft).status_code, 204)
+
+    def test_student_cannot_delete(self):
+        self.assertEqual(self.delete(self.student, self.published).status_code, 403)
+        self.assertTrue(Course.objects.filter(id=self.published.id).exists())
+
+
+class TokenObtainTests(CourseApiTestData):
+
+    def test_valid_credentials_return_token_that_works(self):
+        response = APIClient().post(
+            reverse("api-token"), {"username": "student1@test.com", "password": "pass12345!"}, format="json"
+        )
+        self.assertEqual(response.status_code, 200)
+        token = response.json()["token"]
+        self.assertEqual(Token.objects.get(user=self.student).key, token)
+
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f"Token {token}")
+        self.assertEqual(client.get(reverse("courseApi")).status_code, 200)
+
+    def test_wrong_password_returns_400_without_token(self):
+        response = APIClient().post(
+            reverse("api-token"), {"username": "student1@test.com", "password": "wrong"}, format="json"
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertNotIn("token", response.json())
+        self.assertFalse(Token.objects.filter(user=self.student).exists())
+
+    def test_get_is_not_allowed(self):
+        self.assertEqual(APIClient().get(reverse("api-token")).status_code, 405)

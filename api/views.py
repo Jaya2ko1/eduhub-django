@@ -158,3 +158,10 @@ class CourseDeleteAPIView(DestroyAPIView):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
     permission_classes = [IsAuthenticated,IsTeacherOrAdmin]
+
+    def get_queryset(self):
+        # Teachers can only delete their own courses; admins can delete any course.
+        user = self.request.user
+        if user.role == user.TEACHER:
+            return Course.objects.filter(instructor=user)
+        return Course.objects.all()

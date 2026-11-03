@@ -17,9 +17,19 @@ from django.utils import timezone
 
 @login_required
 def get_next_order_number(request):
+    if request.user.role not in (request.user.ADMIN, request.user.TEACHER):
+        return JsonResponse({"error": "Only teachers and admins can create lessons."}, status=403)
     course_id = request.GET.get("course_id")
     if not course_id:
         return JsonResponse({"order_number": 1})
+    if not course_id.isdigit():
+        return JsonResponse({"error": "course_id must be an integer."}, status=400)
+    # Teachers may only look up their own courses.
+    courses = Course.objects.all()
+    if request.user.role == request.user.TEACHER:
+        courses = courses.filter(instructor=request.user)
+    if not courses.filter(id=course_id).exists():
+        return JsonResponse({"error": "Course not found."}, status=404)
 
     last_lesson = (
         Lesson.objects
