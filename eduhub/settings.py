@@ -10,7 +10,32 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+from django.core.exceptions import ImproperlyConfigured
+
+TRUE_VALUES = {"1", "true", "yes", "on"}
+FALSE_VALUES = {"0", "false", "no", "off"}
+
+
+def env_bool(name, default=False):
+    value = os.environ.get(name, "").strip().lower()
+    if not value:
+        return default
+    if value in TRUE_VALUES:
+        return True
+    if value in FALSE_VALUES:
+        return False
+    # The value itself is not echoed back, so nothing sensitive reaches logs.
+    raise ImproperlyConfigured(
+        f"{name} must be one of: {', '.join(sorted(TRUE_VALUES | FALSE_VALUES))}."
+    )
+
+
+def env_list(name):
+    return [item.strip() for item in os.environ.get(name, "").split(",") if item.strip()]
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,13 +48,24 @@ STATICFILES_DIRS = [
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-i=j^4hq*$u@7y)k)+h7cqr1yp66dj&*d6fwtzb_xnuwik3qvvu"
+# SECURITY WARNING: never commit real secrets. Configure these through
+# environment variables (see .env.example).
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env_bool("DJANGO_DEBUG", default=False)
 
-ALLOWED_HOSTS = []
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "").strip()
+if not SECRET_KEY:
+    if DEBUG:
+        # Local development only; never used when DEBUG is off.
+        SECRET_KEY = "django-insecure-local-development-key-do-not-use-in-production"
+    else:
+        raise ImproperlyConfigured(
+            "Set the DJANGO_SECRET_KEY environment variable (required when DJANGO_DEBUG is off)."
+        )
+
+ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS")
 
 
 # Application definition
