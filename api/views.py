@@ -11,6 +11,8 @@ from .permissions import IsTeacherOrAdmin
 from django.db.models import Q
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.exceptions import ValidationError
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.throttling import ScopedRateThrottle
 
 
 def get_visible_courses(user):
@@ -165,3 +167,9 @@ class CourseDeleteAPIView(DestroyAPIView):
         if user.role == user.TEACHER:
             return Course.objects.filter(instructor=user)
         return Course.objects.all()
+
+
+class ThrottledObtainAuthToken(ObtainAuthToken):
+    # DRF's ObtainAuthToken turns throttling off, so limit password guessing here.
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "token"

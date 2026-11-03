@@ -1,3 +1,6 @@
+import re
+
+from django.conf import settings
 from django.test import TestCase
 from django.urls import reverse
 
@@ -72,3 +75,53 @@ class SuperuserRoleTests(TestCase):
                 user.save()
                 user.refresh_from_db()
                 self.assertEqual(user.role, role)
+
+
+class HomeRedirectTests(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin = User.objects.create_user(username="admin1", email="admin1@test.com", password="pass12345!", role=User.ADMIN)
+        cls.teacher = User.objects.create_user(username="teacher1", email="teacher1@test.com", password="pass12345!", role=User.TEACHER)
+        cls.student = User.objects.create_user(username="student1", email="student1@test.com", password="pass12345!", role=User.STUDENT)
+
+    def test_anonymous_root_redirects_to_login(self):
+        self.assertRedirects(self.client.get("/"), reverse("login"))
+
+    def test_logged_in_root_redirects_to_own_dashboard(self):
+        for user, dashboard in ((self.admin, "admin_dashboard"), (self.teacher, "instructor_dashboard"), (self.student, "student_dashboard")):
+            with self.subTest(role=user.role):
+                self.client.force_login(user)
+                self.assertRedirects(self.client.get("/"), reverse(dashboard))
+
+
+class FrontendAssetTests(TestCase):
+    """CDN assets are pinned with integrity hashes and no third-party images are loaded."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.student = User.objects.create_user(username="student1", email="student1@test.com", password="pass12345!", role=User.STUDENT)
+
+    def assert_cdn_tags_have_integrity(self, html):
+        tags = re.findall(r'<(?:link|script)[^>]+cdn\.jsdelivr\.net[^>]*>', html)
+        self.assertTrue(tags)
+        for tag in tags:
+            self.assertIn('integrity="sha384-', tag)
+            self.assertIn('crossorigin="anonymous"', tag)
+        self.assertNotIn("bootstrap@5.3.3", html)
+
+    def test_public_pages_use_pinned_assets(self):
+        for name in ("login", "register"):
+            with self.subTest(page=name):
+                self.assert_cdn_tags_have_integrity(self.client.get(reverse(name)).content.decode())
+
+    def test_base_layout_uses_pinned_assets_and_no_third_party_images(self):
+        self.client.force_login(self.student)
+        html = self.client.get(reverse("list_course")).content.decode()
+        self.assert_cdn_tags_have_integrity(html)
+        self.assertIn("sweetalert2@11.26.25/dist/sweetalert2.all.min.js", html)
+        self.assertNotIn("pravatar.cc", html)
+        self.assertNotIn("placehold.co", self.client.get(reverse("student_dashboard")).content.decode())
+
+    def test_default_course_thumbnail_ships_with_the_project(self):
+        self.assertTrue((settings.BASE_DIR / "media" / "courses" / "default.png").is_file())

@@ -1,3 +1,4 @@
+from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework.authtoken.models import Token
@@ -265,6 +266,9 @@ class CourseDeleteViewOwnershipTests(CourseApiTestData):
 
 class TokenObtainTests(CourseApiTestData):
 
+    def setUp(self):
+        cache.clear()
+
     def test_valid_credentials_return_token_that_works(self):
         response = APIClient().post(
             reverse("api-token"), {"username": "student1@test.com", "password": "pass12345!"}, format="json"
@@ -287,3 +291,32 @@ class TokenObtainTests(CourseApiTestData):
 
     def test_get_is_not_allowed(self):
         self.assertEqual(APIClient().get(reverse("api-token")).status_code, 405)
+
+
+class TokenThrottleTests(CourseApiTestData):
+
+    def setUp(self):
+        cache.clear()
+
+    def tearDown(self):
+        cache.clear()
+
+    def test_token_endpoint_blocks_after_five_attempts_per_minute(self):
+        client = APIClient()
+        statuses = [
+            client.post(reverse("api-token"), {"username": "student1@test.com", "password": f"wrong{i}"}, format="json").status_code
+            for i in range(6)
+        ]
+        self.assertEqual(statuses[:5], [400] * 5)
+        self.assertEqual(statuses[5], 429)
+
+        response = client.post(reverse("api-token"), {"username": "student1@test.com", "password": "pass12345!"}, format="json")
+        self.assertEqual(response.status_code, 429)
+        self.assertFalse(Token.objects.filter(user=self.student).exists())
+
+    def test_default_throttles_are_configured(self):
+        from django.conf import settings
+        rest = settings.REST_FRAMEWORK
+        self.assertIn("rest_framework.throttling.AnonRateThrottle", rest["DEFAULT_THROTTLE_CLASSES"])
+        self.assertIn("rest_framework.throttling.UserRateThrottle", rest["DEFAULT_THROTTLE_CLASSES"])
+        self.assertEqual(rest["DEFAULT_THROTTLE_RATES"]["token"], "5/min")

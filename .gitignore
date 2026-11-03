@@ -9,7 +9,12 @@ venv/
 
 # Django
 db.sqlite3
-media/
+staticfiles/
+# Uploaded media stays out of Git, except the default course thumbnail.
+media/*
+!media/courses/
+media/courses/*
+!media/courses/default.png
 
 # Environment variables
 .env

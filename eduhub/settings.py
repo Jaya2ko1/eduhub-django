@@ -37,6 +37,15 @@ def env_list(name):
     return [item.strip() for item in os.environ.get(name, "").split(",") if item.strip()]
 
 
+def env_int(name, default=0):
+    value = os.environ.get(name, "").strip()
+    if not value:
+        return default
+    if not value.isdigit():
+        raise ImproperlyConfigured(f"{name} must be a whole number of seconds.")
+    return int(value)
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -66,6 +75,18 @@ if not SECRET_KEY:
         )
 
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS")
+CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
+
+# HTTPS and cookie security: on by default when DEBUG is off, overridable per environment.
+SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", default=not DEBUG)
+SESSION_COOKIE_SECURE = env_bool("DJANGO_SESSION_COOKIE_SECURE", default=not DEBUG)
+CSRF_COOKIE_SECURE = env_bool("DJANGO_CSRF_COOKIE_SECURE", default=not DEBUG)
+# Behind a proxy that terminates HTTPS (Render, Railway, nginx...), trust its forwarded scheme.
+if env_bool("DJANGO_SECURE_PROXY_SSL_HEADER", default=False):
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+# HSTS is hard to undo, so it stays off until explicitly enabled.
+SECURE_HSTS_SECONDS = env_int("DJANGO_SECURE_HSTS_SECONDS", default=0)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS", default=False)
 
 
 # Application definition
@@ -155,6 +176,17 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/min',
+        'user': '1000/min',
+        # Login attempts on the token endpoint (see api.views.ThrottledObtainAuthToken).
+        'token': '5/min',
+    },
 }
 
 
@@ -174,6 +206,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = "static/"
+# Where "manage.py collectstatic" gathers files for the production web server.
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 
 MEDIA_URL = "/media/"
@@ -182,3 +216,20 @@ MEDIA_ROOT = BASE_DIR / "media"
 AUTH_USER_MODEL = 'accounts.User'
 
 LOGIN_URL = "login"
+
+# Send logs to the console so the hosting platform captures them. With DEBUG off there
+# are no error pages, so server errors (5xx) must be logged with their tracebacks.
+LOG_LEVEL = os.environ.get("DJANGO_LOG_LEVEL", "INFO" if DEBUG else "WARNING").strip().upper()
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {"class": "logging.StreamHandler"},
+    },
+    "root": {"handlers": ["console"], "level": LOG_LEVEL},
+    "loggers": {
+        "django": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+        # Expected 4xx responses stay out of the logs; server errors are always logged.
+        "django.request": {"handlers": ["console"], "level": "ERROR", "propagate": False},
+    },
+}

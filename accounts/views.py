@@ -49,6 +49,12 @@ def user_role(request):
 
     return redirect(role_redirect.get(request.user.role, "login"))
 
+def home(request):
+    # The site root sends people to their dashboard, or to the login page.
+    if request.user.is_authenticated:
+        return user_role(request)
+    return redirect("login")
+
 def auth_logout(request):
     logout(request)
     return redirect('login')
