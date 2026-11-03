@@ -12,6 +12,15 @@ from django.db.models import Q
 from rest_framework.pagination import PageNumberPagination
 
 
+def get_visible_courses(user):
+    """Courses this user may read through the API."""
+    if user.role == user.ADMIN:
+        return Course.objects.all()
+    if user.role == user.TEACHER:
+        return Course.objects.filter(Q(status="published") | Q(instructor=user))
+    return Course.objects.filter(status="published")
+
+
 
 
 
@@ -22,7 +31,7 @@ class CourseApi(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self,request):
-        courses = Course.objects.all()
+        courses = get_visible_courses(request.user)
         paginator = PageNumberPagination()
         paginator.page_size = 5
         paginated_courses = paginator.paginate_queryset(
@@ -94,7 +103,7 @@ class CourseFilterAPIView(ListAPIView):
     ]
     def get_queryset(self):
 
-        courses = super().get_queryset()
+        courses = get_visible_courses(self.request.user)
          
         course_status = self.request.query_params.get("status")
         category = self.request.query_params.get("category")
@@ -121,6 +130,8 @@ class CoursePaginationAPIView(ListAPIView):
     permission_classes = [
         IsAuthenticated,
     ]
+    def get_queryset(self):
+        return get_visible_courses(self.request.user)
 
     
 
@@ -132,6 +143,9 @@ class CourseRetrieveAPIView(RetrieveAPIView):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return get_visible_courses(self.request.user)
 
 
 class CourseDeleteAPIView(DestroyAPIView):
