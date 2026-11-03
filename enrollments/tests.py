@@ -16,11 +16,11 @@ from .services import complete_enrollment_if_finished
 COURSE_COMPLETED_MESSAGE = "Congratulations! You have completed this course."
 
 
-class EnrollmentCompletionTests(TestCase):
+class EnrollmentTestData(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.teacher = User.objects.create_user(username="teacher1", email="teacher1@test.com", password="pass12345!", role=User.TEACHER)
+        cls.teacher =User.objects.create_user(username="teacher1", email="teacher1@test.com", password="pass12345!", role=User.TEACHER)
         cls.student = User.objects.create_user(username="student1", email="student1@test.com", password="pass12345!", role=User.STUDENT)
         cls.other_student = User.objects.create_user(username="student2", email="student2@test.com", password="pass12345!", role=User.STUDENT)
         cls.category = Category.objects.create(category="Programming", description="Programming courses")
@@ -66,6 +66,9 @@ class EnrollmentCompletionTests(TestCase):
 
     def messages_for(self, response):
         return [str(m) for m in get_messages(response.wsgi_request)]
+
+
+class EnrollmentCompletionTests(EnrollmentTestData):
 
     # Cancelled enrollments
 
@@ -193,3 +196,54 @@ class EnrollmentCompletionTests(TestCase):
         self.assertEqual(response.context["progress_percentage"], 60)
         self.assertTrue(response.context["enrolled"])
         self.assertContains(response, "3 of 5 lessons completed")
+
+
+class EnrollmentIntegrityTests(EnrollmentTestData):
+
+    def test_incomplete_progress_row_is_completed_without_error(self):
+        enrollment = self.enroll()
+        LessonProgress.objects.create(student=self.student, lesson=self.lessons[0], is_completed=False)
+        self.client.force_login(self.student)
+        response = self.complete_via_view(self.lessons[0])
+        self.assertRedirects(response, reverse("lesson_detail", args=[self.lessons[0].id]))
+        progress = LessonProgress.objects.get(student=self.student, lesson=self.lessons[0])
+        self.assertTrue(progress.is_completed)
+        self.assertIsNotNone(progress.completed_at)
+        self.assertIn("Successfully marked lesson as completed.", self.messages_for(response))
+        self.assertEqual(self.status_of(enrollment), "active")
+
+    def test_repeat_completion_keeps_one_row(self):
+        self.enroll()
+        self.client.force_login(self.student)
+        self.complete_via_view(self.lessons[0])
+        response = self.complete_via_view(self.lessons[0])
+        self.assertIn("Lesson is already completed.", self.messages_for(response))
+        self.assertEqual(LessonProgress.objects.filter(student=self.student, lesson=self.lessons[0]).count(), 1)
+
+    def test_enroll_creates_active_enrollment(self):
+        self.client.force_login(self.student)
+        response = self.client.post(reverse("enrollment", args=[self.course.id]))
+        self.assertRedirects(response, reverse("list_course"))
+        self.assertEqual(Enrollment.objects.get(student=self.student, course=self.course).status, "active")
+        self.assertIn("Successfully enrolled in the course.", self.messages_for(response))
+
+    def test_cancelled_enrollment_is_reactivated_and_keeps_progress(self):
+        enrollment = self.enroll(status="cancelled")
+        self.record_progress(self.lessons[:2])
+        self.client.force_login(self.student)
+        response = self.client.post(reverse("enrollment", args=[self.course.id]))
+        self.assertIn("Your enrollment has been reactivated.", self.messages_for(response))
+        self.assertEqual(self.status_of(enrollment), "active")
+        self.assertEqual(Enrollment.objects.filter(student=self.student, course=self.course).count(), 1)
+        self.assertEqual(LessonProgress.objects.filter(student=self.student).count(), 2)
+
+    def test_active_and_completed_enrollments_are_not_changed_by_enroll(self):
+        for status in ("active", "completed"):
+            with self.subTest(status=status):
+                enrollment, _ = Enrollment.objects.update_or_create(
+                    student=self.student, course=self.course, defaults={"status": status}
+                )
+                self.client.force_login(self.student)
+                response = self.client.post(reverse("enrollment", args=[self.course.id]))
+                self.assertIn("You are already enrolled in this course.", self.messages_for(response))
+                self.assertEqual(self.status_of(enrollment), status)

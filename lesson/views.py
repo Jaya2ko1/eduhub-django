@@ -99,19 +99,21 @@ def lesson_complete(request,id):
             "You are unable to access this course. Please enroll first."
         )
         return redirect("lesson_list",lesson.course.id)
-    check_progress = LessonProgress.objects.filter(student=request.user,lesson=lesson,is_completed=True).exists()
-    if check_progress:
+    progress, created = LessonProgress.objects.get_or_create(
+        student=request.user,
+        lesson=lesson,
+        defaults={"is_completed": True, "completed_at": timezone.now()},
+    )
+    if not created and progress.is_completed:
         messages.error(
             request,
                 "Lesson is already completed."
             )
     else:
-        LessonProgress.objects.create(
-            student = request.user,
-            lesson = lesson ,
-            is_completed = True,
-            completed_at = timezone.now()
-        )
+        if not created:
+            progress.is_completed = True
+            progress.completed_at = timezone.now()
+            progress.save(update_fields=["is_completed", "completed_at", "updated_at"])
         messages.success(
             request,
                 "Successfully marked lesson as completed."

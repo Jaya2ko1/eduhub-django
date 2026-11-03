@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from enrollments.models import Enrollment
 from courses.models import Course
 from django.contrib import messages
+from django.utils import timezone
 
 
 # Create your views here.
@@ -12,20 +13,22 @@ def student_enrollment(request,id):
         if request.user.role == request.user.STUDENT:
 
             course = get_object_or_404(Course,id=id,status="published")
-            enroll = Enrollment.objects.filter(course=course,student=request.user).exists()
-    
-            if enroll:
-                messages.error(request, "You are already enrolled in this course.")
-                return redirect('list_course')
-                
-            else:
-                enrollment = Enrollment.objects.create(
-                student=request.user,   
+            enrollment, created = Enrollment.objects.get_or_create(
                 course=course,
-                status="active"
-                )
+                student=request.user,
+                defaults={"status": "active"},
+            )
+
+            if created:
                 messages.success(request, "Successfully enrolled in the course.")
-                return redirect('list_course')
+            # Conditional UPDATE: only a cancelled enrollment is reactivated.
+            elif Enrollment.objects.filter(pk=enrollment.pk, status="cancelled").update(
+                status="active", updated_at=timezone.now()
+            ):
+                messages.success(request, "Your enrollment has been reactivated.")
+            else:
+                messages.error(request, "You are already enrolled in this course.")
+            return redirect('list_course')
                 
         else:
             messages.error(request, "User must be a student to enroll the course")
