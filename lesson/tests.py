@@ -1,4 +1,8 @@
-from django.test import TestCase
+import shutil
+import tempfile
+
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from accounts.models import User
@@ -362,3 +366,69 @@ class LessonSearchDeleteButtonTests(LessonTestData):
         delete_url = reverse("lesson_delete", args=[self.lesson.id])
         self.assertContains(response, f'action="{delete_url}"')
         self.assertNotContains(response, f'href="{delete_url}"')
+
+
+LESSON_MEDIA_ROOT = tempfile.mkdtemp()
+
+
+@override_settings(MEDIA_ROOT=LESSON_MEDIA_ROOT)
+class LessonContentValidationTests(LessonTestData):
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(LESSON_MEDIA_ROOT, ignore_errors=True)
+
+    def pdf_upload(self, name="notes.pdf"):
+        return SimpleUploadedFile(name, b"%PDF-1.4 test", content_type="application/pdf")
+
+    def test_form_includes_pdf_file(self):
+        self.assertIn("pdf_file", LessonForm(user=self.teacher).fields)
+
+    def test_video_lesson_requires_video_url(self):
+        form = LessonForm(self.lesson_data(self.course, lesson_type="video", video_url=""), user=self.teacher)
+        self.assertFalse(form.is_valid())
+        self.assertIn("video_url", form.errors)
+
+        form = LessonForm(
+            self.lesson_data(self.course, lesson_type="video", video_url="https://example.com/video"),
+            user=self.teacher,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_pdf_lesson_requires_pdf_file(self):
+        form = LessonForm(self.lesson_data(self.course, lesson_type="pdf"), user=self.teacher)
+        self.assertFalse(form.is_valid())
+        self.assertIn("pdf_file", form.errors)
+
+    def test_pdf_upload_creates_lesson_with_file(self):
+        self.client.force_login(self.teacher)
+        data = self.lesson_data(self.course, lesson_type="pdf")
+        data["pdf_file"] = self.pdf_upload()
+        response = self.client.post(reverse("lesson_create"), data)
+        self.assertRedirects(response, reverse("lesson_list", args=[self.course.id]))
+        lesson = Lesson.objects.get(title="New Lesson")
+        self.assertTrue(lesson.pdf_file.name.endswith(".pdf"))
+
+    def test_non_pdf_upload_is_rejected(self):
+        data = self.lesson_data(self.course, lesson_type="pdf")
+        files = {"pdf_file": SimpleUploadedFile("malware.exe", b"MZ", content_type="application/octet-stream")}
+        form = LessonForm(data, files, user=self.teacher)
+        self.assertFalse(form.is_valid())
+        self.assertIn("pdf_file", form.errors)
+
+    def test_editing_pdf_lesson_keeps_existing_file(self):
+        lesson = Lesson.objects.create(
+            title="PDF Lesson", course=self.course, lesson_type="pdf", content="content",
+            order_number=3, status="published", instructor=self.teacher, pdf_file=self.pdf_upload(),
+        )
+        form = LessonForm(
+            self.lesson_data(self.course, lesson_type="pdf", title="PDF Lesson Updated", order_number=3),
+            instance=lesson,
+            user=self.teacher,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_reading_lesson_needs_neither_url_nor_file(self):
+        form = LessonForm(self.lesson_data(self.course, lesson_type="reading"), user=self.teacher)
+        self.assertTrue(form.is_valid(), form.errors)
