@@ -203,6 +203,7 @@ def lesson_list(request,course_id):
         all_lesson = Lesson.objects.filter(status="published",course=course_id).order_by('order_number')
     else:
         all_lesson = Lesson.objects.filter(course=course_id).order_by('order_number')
+    all_lesson = all_lesson.select_related("course", "instructor")
 
     
  
@@ -315,7 +316,7 @@ def lesson_search(request):
     # Ordering
     # --------------------------------
 
-    search_lesson = search_lesson.order_by(
+    search_lesson = search_lesson.select_related("course", "instructor").order_by(
         "order_number"
     )
 

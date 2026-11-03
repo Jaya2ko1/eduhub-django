@@ -2,7 +2,9 @@ import shutil
 import tempfile
 
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import connection
 from django.test import TestCase, override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from accounts.models import User
@@ -432,3 +434,28 @@ class LessonContentValidationTests(LessonTestData):
     def test_reading_lesson_needs_neither_url_nor_file(self):
         form = LessonForm(self.lesson_data(self.course, lesson_type="reading"), user=self.teacher)
         self.assertTrue(form.is_valid(), form.errors)
+
+
+class LessonListQueryCountTests(LessonTestData):
+    """Query counts must not grow with the number of lessons on the page (no N+1)."""
+
+    def add_lessons(self, count, start):
+        for i in range(start, start + count):
+            Lesson.objects.create(title=f"Extra {i}", course=self.course, content="content",
+                                  order_number=i, status="published", instructor=self.teacher)
+
+    def count_queries(self, url):
+        self.client.force_login(self.admin)
+        with CaptureQueriesContext(connection) as ctx:
+            response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        return len(ctx.captured_queries)
+
+    def test_lesson_list_and_search_query_counts_are_constant(self):
+        for url in (reverse("lesson_list", args=[self.course.id]), reverse("lesson_search")):
+            with self.subTest(url=url):
+                Lesson.objects.exclude(id=self.lesson.id).delete()
+                few = self.count_queries(url)
+                self.add_lessons(4, start=10)
+                many = self.count_queries(url)
+                self.assertEqual(few, many)

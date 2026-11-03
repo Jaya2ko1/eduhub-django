@@ -5,7 +5,9 @@ from io import BytesIO
 from PIL import Image
 from django.contrib.messages import get_messages
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import connection
 from django.test import TestCase, override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from accounts.models import User
@@ -375,3 +377,47 @@ class CourseSearchInputValidationTests(TestCase):
         self.client.force_login(self.admin)
         response = self.client.get(reverse("search_course"), {"category": other_category.id})
         self.assertEqual(list(response.context["courses"]), [])
+
+
+class CourseListQueryCountTests(TestCase):
+    """Query counts must not grow with the number of courses on the page (no N+1)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin = User.objects.create_user(username="admin1", email="admin1@test.com", password="pass12345!", role=User.ADMIN)
+        cls.student = User.objects.create_user(username="student1", email="student1@test.com", password="pass12345!", role=User.STUDENT)
+        cls.categories = [Category.objects.create(category=f"Category {i}", description="d") for i in range(5)]
+        cls.teachers = [
+            User.objects.create_user(username=f"teacher{i}", email=f"teacher{i}@test.com", password="pass12345!", role=User.TEACHER)
+            for i in range(5)
+        ]
+
+    def add_courses(self, count, start=0):
+        for i in range(start, start + count):
+            Course.objects.create(
+                title=f"Course {i}",
+                category=self.categories[i % 5],
+                instructor=self.teachers[i % 5],
+                short_description="short",
+                full_description="full",
+                price=100,
+                status="published",
+            )
+
+    def count_queries(self, user, url):
+        self.client.force_login(user)
+        with CaptureQueriesContext(connection) as ctx:
+            response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        return len(ctx.captured_queries)
+
+    def test_course_list_and_search_query_counts_are_constant(self):
+        for user in (self.admin, self.student):
+            for name in ("list_course", "search_course"):
+                with self.subTest(role=user.role, page=name):
+                    Course.objects.all().delete()
+                    self.add_courses(1)
+                    few = self.count_queries(user, reverse(name))
+                    self.add_courses(4, start=1)
+                    many = self.count_queries(user, reverse(name))
+                    self.assertEqual(few, many)

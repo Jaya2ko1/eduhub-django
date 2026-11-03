@@ -103,7 +103,7 @@ def view_course(request, id):
 def list_course(request):
     # Each course carries the current user's own enrollment status (or None).
     my_enrollment = Enrollment.objects.filter(course=OuterRef("pk"), student=request.user)
-    get_course = get_courses_by_user(request.user).annotate(
+    get_course = get_courses_by_user(request.user).select_related("category", "instructor").annotate(
         my_enrollment_status=Subquery(my_enrollment.values("status")[:1])
     )
 
@@ -129,7 +129,7 @@ def delete_course(request,id):
 @login_required
 def search_course(request):
     categories = Category.objects.all()
-    courses = get_courses_by_user(request.user)
+    courses = get_courses_by_user(request.user).select_related("category", "instructor")
 
     query = request.GET.get("search")
     category = request.GET.get("category")
